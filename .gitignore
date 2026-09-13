@@ -38,6 +38,10 @@ apps/web/dist/
 .artifacts/
 .dsh-build/
 .playwright-mcp/
+/.playwright-cli/
+/output/playwright/
+/.workbuddy/
+/.local-*.log
 .orig
 .worktrees/
 worktrees/
