@@ -3,12 +3,172 @@
    geometry and the chip live here. */
 
 .root {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   min-width: 0;
   padding: 0 24px;
+}
+
+.root::before {
+  content: '';
+  position: absolute;
+  inset: 4% 0 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--sph-crimson) 10%, transparent), transparent 65%);
+}
+
+.petStage {
+  position: relative;
+  width: 360px;
+  max-width: 100%;
+  height: 216px;
+  margin: 0 auto;
+}
+
+.character {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 156px;
+  height: 208px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translateX(-50%);
+  cursor: pointer;
+  border-radius: 30%;
+}
+
+.character:focus-visible, .petPause:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 4px;
+}
+
+.sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: url('/brand/kitsune-sprites.png') 0 0 / 400% 100% no-repeat;
+  filter: drop-shadow(0 9px 9px color-mix(in srgb, var(--sph-crimson) 18%, transparent));
+  transform-origin: 50% 90%;
+  animation: pet-blink 5s step-end infinite, pet-breathe 3s ease-in-out infinite;
+}
+
+.petStage[data-happy='true'] .sprite, .character:hover .sprite {
+  animation: pet-wave 0.7s step-end infinite, pet-breathe 1.5s ease-in-out infinite;
+}
+
+.orbit {
+  position: absolute;
+  width: 220px;
+  height: 48px;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(-8deg);
+  border: 0.5px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 40%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--sph-crimson) 12%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.spark, .sparkSmall {
+  position: absolute;
+  left: 18%;
+  top: 30%;
+  color: var(--dsw-alias-brand-text);
+  font-size: 24px;
+  animation: pet-spark 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.sparkSmall { left: auto; right: 18%; top: 58%; font-size: 17px; animation-delay: -1.5s; }
+
+.petSpeech {
+  position: absolute;
+  left: 68%;
+  top: 14px;
+  width: 126px;
+  padding: 9px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 14px 14px 14px 3px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-brand-text);
+  font-size: 11px;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.petPause {
+  position: absolute;
+  bottom: 4px;
+  right: 0;
+  border: 0;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font-size: 10px;
+}
+
+@keyframes pet-blink {
+  0%, 94%, 100% { background-position: 0 0; }
+  96% { background-position: 33.333333% 0; }
+}
+
+@keyframes pet-wave {
+  0%, 100% { background-position: 66.666667% 0; }
+  50% { background-position: 100% 0; }
+}
+
+@keyframes pet-breathe {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50% { transform: translateY(-4px) rotate(0.6deg); }
+}
+
+@keyframes pet-spark {
+  0%, 100% { transform: translateY(0) scale(0.8); opacity: 0.4; }
+  50% { transform: translateY(-8px) scale(1.1); opacity: 0.85; }
+}
+
+.petStage[data-paused='true'] .sprite,
+.petStage[data-paused='true'] .spark,
+.petStage[data-paused='true'] .sparkSmall {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .petStage[data-motion-enabled='false'] .sprite,
+  .petStage[data-motion-enabled='false'][data-happy='true'] .sprite,
+  .petStage[data-motion-enabled='false'] .character:hover .sprite,
+  .petStage[data-motion-enabled='false'] .spark,
+  .petStage[data-motion-enabled='false'] .sparkSmall { animation: none; }
+}
+
+.eyebrow {
+  margin: 0;
+  text-align: center;
+  font: 11px/20px var(--ds-font-family-code);
+  letter-spacing: 0.2em;
+  color: var(--dsw-alias-brand-text);
+}
+
+.tagline {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+@media (max-height: 700px), (max-width: 560px) {
+  .petStage { display: none; }
+  .tagline { font-size: 12px; }
 }
 
 /* Cap matches the InputBar card. Glow may paint past the sides. */
@@ -90,7 +250,7 @@
   display: block;
   overflow: visible;
   transform-origin: 50% 60%;
-  color: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-brand-text);
 }
 
 /* Hover swim: a slow continuous sway about the body center — the head

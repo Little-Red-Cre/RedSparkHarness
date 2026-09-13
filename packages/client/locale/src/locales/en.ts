@@ -30,7 +30,7 @@ export const en = {
   'collapse': 'Collapse',
   'expand': 'Expand',
   'back': 'Back',
-  'brand.localBuild': 'DSH Local Build',
+  'brand.localBuild': 'RedSpark Harness',
   'unknown': 'Unknown',
   'none': 'None',
   'truncated': 'Truncated',

@@ -1,0 +1,23 @@
+Kitsune sprite atlas — generated with the built-in image_gen tool.
+Reference: kitsune-reference.png, supplied by the project owner.
+Output: kitsune-sprites.png (2172 x 724, RGBA), four equal horizontal frames.
+
+Generation prompt specification:
+Create a new transparent four-frame chibi sprite atlas for RedSpark Harness.
+Preserve Kitsune's white hair with red tips, fox ears, red eyes, black/crimson
+gothic outfit, floral ornament, boots, and fluffy white/red tail. Keep all
+four full-body characters consistently sized and aligned. Frames: idle with
+open eyes; blink; friendly wave; happy closed-eye wave. No text, panel,
+background, watermark or fragments of the reference design sheet.
+
+Final background-extraction prompt:
+Use case: background-extraction. Edit target this 4-frame chibi sprite atlas.
+Remove the entire gray checkerboard background and make it REAL TRANSPARENT
+ALPHA (PNG RGBA). Checkerboard must not be painted pixels. Preserve all four
+characters, their exact positions, full ears/tails/hair, crimson and white
+colors, exact sprite-sheet dimensions and frame alignment. Change nothing
+in character art. No shadow backdrop, no white replacement, no grid, no
+labels. Output true transparent background image.
+
+This is a small sprite animation, not a rigged Live2D model. Source reference
+art remains unchanged. The first generated opaque draft is not shipped.

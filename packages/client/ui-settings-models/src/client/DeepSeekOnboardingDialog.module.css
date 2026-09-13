@@ -9,6 +9,10 @@
   margin-top: 24px;
 }
 
+.provider {
+  margin-top: 16px;
+}
+
 @media (max-width: 560px) {
   .editor {
     margin-top: 20px;

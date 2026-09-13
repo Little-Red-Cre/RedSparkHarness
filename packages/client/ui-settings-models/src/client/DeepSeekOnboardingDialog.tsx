@@ -1,23 +1,22 @@
 /**
- * Official-DeepSeek first-run step. Readiness comes from the same
- * provider/settings/credential join as the Models page: any provider the user
- * can already talk to ends the step, and only a user with none is offered the
- * official DeepSeek route. The step reuses that page's credential editor in
- * the onboarding plugin's shared modal, so the key is entered once.
+ * First-run model configuration using the Models page's provider editors.
+ * Readiness comes from the shared provider/settings/credential join.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
-import { onboardingReadiness } from './store.ts'
+import { onboardingReadiness, protocolChoices } from './store.ts'
+import { CustomProviderCard } from './CustomProviderCard.tsx'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import { ProviderEditor } from './ProviderEditor.tsx'
 import type { en } from './locales.ts'
 import { OnboardingModal } from './OnboardingModal.tsx'
 import styles from './DeepSeekOnboardingDialog.module.css'
+import formStyles from './ModelsSection.module.css'
 
 /** Registration-side dependencies of {@link DeepSeekOnboardingDialog}. */
 export interface DeepSeekOnboardingInjected {
@@ -45,14 +44,14 @@ function assertNever(_value: never): never {
 }
 
 /**
- * Prompt a first-run user for the official DeepSeek credential while no
- * provider can serve requests and that credential is writable.
+ * Offer provider selection and custom model configuration on first launch.
  * @param props - settings-shell owner state and Models feature dependencies.
  * @returns the onboarding modal or null when onboarding needs no intervention.
  */
 export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): ReactNode {
   const { complete, controller, useModels, operations, schema, t } = props
   const state = useModels(snapshot => snapshot)
+  const [selected, setSelected] = useState('deepseek-official')
   const readiness = onboardingReadiness(state)
 
   useEffect(() => {
@@ -80,13 +79,11 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
       return assertNever(readiness)
   }
 
-  const row = state.rows.find(candidate =>
-    candidate.entry.provider === 'deepseek-official'
-    && candidate.entry.settingsNs === 'llm-deepseek'
-    && candidate.entry.settingsPath.length === 0)
-  const namespace = state.namespaces.get('llm-deepseek')
-  /* v8 ignore next 2 -- credential-missing is derived only from this exact joined row. */
-  if (row === undefined || namespace === undefined) return null
+  const providers = state.rows.filter(candidate => state.namespaces.has(candidate.entry.settingsNs))
+  const row = providers.find(candidate => candidate.entry.provider === selected)
+  const namespace = row === undefined ? undefined : state.namespaces.get(row.entry.settingsNs)
+  const customNamespace = state.namespaces.get('llm-pi-ai')
+  const protocols = protocolChoices(customNamespace, schema)
 
   const finishCredential = (changed: boolean): void => {
     if (!changed) {
@@ -99,8 +96,24 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
   return (
     <OnboardingModal title={t('onboardingTitle')}>
       <p className={styles.description}>{t('onboardingDescription')}</p>
+      <select className={`${styles.provider} ${formStyles['input']} ${formStyles['selectInput']}`}
+        aria-label={t('onboardingProvider')} value={selected} onChange={(event) => { setSelected(event.target.value) }}>
+        {providers.map(candidate => (
+          <option key={candidate.entry.provider} value={candidate.entry.provider}>{candidate.entry.displayName}</option>
+        ))}
+        {protocols.length > 0 ? <option value="">{t('customTitle')}</option> : null}
+      </select>
       <div className={styles.editor}>
-        <ProviderEditor
+        {selected === '' && customNamespace !== undefined ? <CustomProviderCard
+          taken={providers.map(candidate => candidate.entry.provider)}
+          protocols={protocols}
+          revision={customNamespace.revision}
+          operations={operations}
+          t={t}
+          readOnly={!state.writable}
+          onClose={finishCredential}
+        /> : row !== undefined && namespace !== undefined ? <ProviderEditor
+          key={selected}
           provider={row.entry.provider}
           displayName={row.entry.displayName}
           namespace={namespace}
@@ -110,14 +123,14 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
           t={t}
           readOnly={false}
           hideTitle
-          credentialOnly
+          declared={row.entry.declared === true}
           credentialRequired
           autoFocusCredential
           cancelLabelKey="onboardingLater"
           submitLabelKey="onboardingSave"
           submitBusyLabelKey="onboardingSaving"
           onClose={finishCredential}
-        />
+        /> : null}
       </div>
     </OnboardingModal>
   )

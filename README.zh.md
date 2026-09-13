@@ -1,16 +1,18 @@
-# DeepSeek Harness
+# RedSpark Harness · SPH
 
 [English](README.md) | 中文
 
-DeepSeek Harness（`dsh`）是由 [DeepSeek AI](https://deepseek.com) 开发的开源 agent harness（智能体框架）。
+RedSpark Harness（SPH）是 RedSpark 的 Agent 平台，基于 [DeepSeek AI](https://deepseek.com) 的开源项目 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 进行开发。RedSpark 是我们的组织名，也是未来自有模型的名称；目前尚未发布 RedSpark 模型。模型服务商保持其实际名称。
+
+桌面端与 Web 端共用绯红、暖白、炭黑主题、火焰星芒标记，以及欢迎页动态伙伴赤绯（Kitsune）。点击角色可挥手，旁边的按钮可暂停动效；默认遵循系统的减少动态效果偏好；“启用动效”可为当前欢迎页明确开启动画。这是应用内精灵动画伙伴，不是 Live2D 模型或系统级悬浮窗口。用户提供的 RedSpark 设计图用于本项目品牌，上游版权与许可证声明继续保留。内部 `dsh` 命令、`DSH_*` 环境变量和包标识保持上游兼容。
 
 它构建于**一切皆插件**的架构之上，由 [Cordis](https://github.com/cordiverse/cordis) 驱动，其设计参见论文 [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512)。
 
-文档：[https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+上游参考文档（保留供开发使用）：[DeepSeek Harness 文档](https://deepseek-harness.github.io/deepseek-harness/)。本项目交付见[本地验收说明](ACCEPTANCE.md)。
 
 ## 开发者预览
 
-DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
+RedSpark Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
 
 运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
 
@@ -18,9 +20,9 @@ DeepSeek Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来
 
 ## 运行
 
-### 通过 `npm` 运行
+### 通过 `npm` 运行上游版本
 
-安装 `Node.js`，然后运行：
+此处保留的命令安装上游 DeepSeek Harness，并非 RedSpark 分支。安装 `Node.js`，然后运行：
 
 ```sh
 npx @deepseek-ai/dsh web
@@ -35,8 +37,8 @@ npx @deepseek-ai/dsh web
 如需从仓库源码运行：
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone https://github.com/Little-Red-Cre/RedSparkHarness.git
+cd RedSparkHarness
 pnpm install
 pnpm run build
 pnpm dsh web
@@ -44,7 +46,11 @@ pnpm dsh web
 
 `pnpm run build` 会准备仓库产物。`pnpm dsh web` 会直接使用这些已构建产物，不会重新构建。
 
-## 社区与支持
+构建后运行 `pnpm run start:desktop` 可启动 Electron 客户端。开发版数据独立存放在 `apps/desktop/.desktop-build/development/home`。API Key 在应用内配置，不写入仓库。
+
+## 上游社区与支持
+
+以下链接属于上游项目，保留用于开发参考。RedSpark 的变更维护在[我们的仓库](https://github.com/Little-Red-Cre/RedSparkHarness)。
 
 - 通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。
 - 为你的插件仓库添加 [`dsh-plugin`](https://github.com/topics/dsh-plugin) 话题，便于被发现。

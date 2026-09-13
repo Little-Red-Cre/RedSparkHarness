@@ -9,6 +9,12 @@ const PLAN_NEXT_ACTION_EN = 'describe your task to generate plan'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'hero.petInteract': '和赤绯打招呼',
+  'hero.petHello': '赤绯在这里，等你的奇思妙想。',
+  'hero.petHappy': '收到！今天也一起让想象发生吧！',
+  'hero.petPause': '暂停动效',
+  'hero.petEnable': '启用动效',
+  'hero.petResume': '唤醒赤绯',
   'hint.plan': PLAN_NEXT_ACTION_ZH,
   'hint.goal': '输入目标，智能体将持续执行',
   'hint.goal.active': '当前目标进行中。可输入 edit 修改 / pause 暂停 / resume 继续 / clear 清除',
@@ -76,7 +82,10 @@ export const zh = {
   'access.confirm.acknowledge': '我已了解风险，并愿意继续',
   'access.confirm.cancel': '取消',
   'access.confirm.enable': '启用完全权限',
-  'hero.headline': '探索未至之境',
+  'hero.headline': '让想象，燃起星火',
+  'hero.character': '赤绯，RedSpark 的狐耳伙伴',
+  'hero.eyebrow': 'REDSPARK HARNESS / SPH',
+  'hero.tagline': '以赤心，照见更远的世界。与赤绯一起，创造下一种可能。',
   'hero.preview': '预览版',
   'hero.chooseWorkspace': '选择工作区',
   'session.hierarchy': '会话层级',
@@ -175,6 +184,12 @@ export type ConversationKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
+  'hero.petInteract': 'Say hello to Kitsune',
+  'hero.petHello': 'Kitsune is here, waiting for your next idea.',
+  'hero.petHappy': 'Ready! Let us bring your imagination to life!',
+  'hero.petPause': 'Pause motion',
+  'hero.petEnable': 'Enable motion',
+  'hero.petResume': 'Wake Kitsune',
   'hint.plan': PLAN_NEXT_ACTION_EN,
   'hint.goal': 'describe the objective for a long-running task',
   'hint.goal.active': 'goal active — edit / pause / resume / clear',
@@ -242,7 +257,10 @@ export const en = {
   'access.confirm.acknowledge': 'I understand the risks and want to continue',
   'access.confirm.cancel': 'Cancel',
   'access.confirm.enable': 'Enable Full access',
-  'hero.headline': 'Into the Unknown',
+  'hero.headline': 'Let imagination ignite',
+  'hero.character': 'Kitsune, the RedSpark companion',
+  'hero.eyebrow': 'REDSPARK HARNESS / SPH',
+  'hero.tagline': 'A small spark. A brighter world. Create your next possibility with Kitsune.',
   'hero.preview': 'Preview',
   'hero.chooseWorkspace': 'Choose workspace',
   'session.hierarchy': 'Session hierarchy',

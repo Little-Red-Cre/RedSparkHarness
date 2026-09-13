@@ -89,6 +89,7 @@ function developmentHostInspectPort(enabled: boolean): number | undefined {
 
 function createWindow(preload: string, show = false): BrowserWindow {
   const window = new BrowserWindow({
+    icon: join(app.getAppPath(), 'renderer', 'redspark.png'),
     width: 1280,
     height: 840,
     minWidth: 880,

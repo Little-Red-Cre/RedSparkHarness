@@ -1,24 +1,26 @@
-# DeepSeek Harness
+# RedSpark Harness · SPH
 
 English | [中文](README.zh.md)
 
-DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+RedSpark Harness (SPH) is RedSpark's agent platform, developed from [DeepSeek AI](https://deepseek.com)'s open-source project [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). RedSpark is our organization and the name reserved for our future model; no RedSpark model is available yet. Model providers retain their actual names.
+
+Our desktop and Web interfaces share a crimson, warm-white and charcoal theme, a flame-and-star mark, and Kitsune (赤绯), our animated welcome-screen companion. Click her to wave; pause motion with the adjacent control. Reduced-motion preferences disable animation by default; Enable motion explicitly opts in for the current welcome screen. This is an in-app sprite companion, not a Live2D model or an operating-system overlay. The supplied RedSpark artwork belongs to the project identity; upstream copyright and license notices are retained. Internal `dsh` commands, `DSH_*` environment variables and package identifiers remain compatible with upstream.
 
 It is built on an **everything-is-a-plugin** architecture and powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512).
 
-Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+Upstream reference documentation (retained for development): [DeepSeek Harness docs](https://deepseek-harness.github.io/deepseek-harness/). Fork-specific delivery: [local acceptance guide](ACCEPTANCE.md).
 
 ## Developer preview
 
-DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+RedSpark Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
 Review the [safety notice](SAFETY.md) before running the project.
 
 ## Run
 
-### Run from `npm`
+### Run the upstream version from `npm`
 
-Install `Node.js`, then run:
+This retained command installs upstream DeepSeek Harness, not the RedSpark fork. Install `Node.js`, then run:
 
 ```sh
 npx @deepseek-ai/dsh web
@@ -31,8 +33,8 @@ The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it
 To run from a repository checkout:
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone https://github.com/Little-Red-Cre/RedSparkHarness.git
+cd RedSparkHarness
 pnpm install
 pnpm run build
 pnpm dsh web
@@ -40,7 +42,11 @@ pnpm dsh web
 
 `pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
 
-## Community and support
+For the Electron desktop client, run `pnpm run start:desktop` after building. The development desktop keeps its own data under `apps/desktop/.desktop-build/development/home`. API keys are configured in the application, not in this repository.
+
+## Upstream community and support
+
+The following links belong to the upstream project and are retained as development resources. RedSpark changes are maintained in [our repository](https://github.com/Little-Red-Cre/RedSparkHarness).
 
 - Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
 - Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.

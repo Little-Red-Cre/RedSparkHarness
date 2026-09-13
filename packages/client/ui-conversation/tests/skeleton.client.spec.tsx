@@ -325,10 +325,25 @@ function mount(
 }
 
 describe('Hero chrome', () => {
+  it('lets the companion greet and pause without sending a model request', () => {
+    const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={() => null} />)
+    const pet = view.getByRole('button', { name: 'Say hello to Kitsune' })
+    expect(pet.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(pet)
+    expect(pet.getAttribute('aria-pressed')).toBe('true')
+    expect(view.getByRole('status').textContent).toBe(en['hero.petHappy'])
+    fireEvent.click(view.getByRole('button', { name: 'Enable motion' }))
+    fireEvent.click(view.getByRole('button', { name: 'Pause motion' }))
+    expect(view.getByRole('button', { name: 'Wake Kitsune' }).getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(view.getByRole('button', { name: 'Wake Kitsune' }))
+    expect(view.getByRole('button', { name: 'Pause motion' }).getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(pet)
+    expect(view.getByRole('status').textContent).toBe(en['hero.petHello'])
+  })
   it('renders the English preview badge through the hero locale seat', () => {
     const renderSlot = vi.fn<HeroShellProps['renderSlot']>(() => null)
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
-    expect(view.getByText('Into the Unknown')).toBeTruthy()
+    expect(view.getByText('Let imagination ignite')).toBeTruthy()
     expect(view.getByText('Preview')).toBeTruthy()
     expect(renderSlot).toHaveBeenCalledOnce()
     expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')
@@ -475,7 +490,7 @@ describe('ConversationRoot resident composer', () => {
     const header = b.view.container.querySelector('header')
     expect(host).not.toBeNull()
     expect(header?.getAttribute('aria-hidden')).toBe('true')
-    expect(b.view.getByText('探索未至之境')).toBeTruthy()
+    expect(b.view.getByText('让想象，燃起星火')).toBeTruthy()
     expect(b.view.getByText('预览版')).toBeTruthy()
     expect(b.view.queryByTestId('view-chat')).toBeNull()
     // The same machine-backed textarea is live in the hero, and the
@@ -509,7 +524,7 @@ describe('ConversationRoot resident composer', () => {
     expect(conversationPhase(failed, EMPTY_CONVERSATION_SNAPSHOT)).toBe('engaging')
     const b = mount(failed, undefined, undefined, { summaryBlank: true })
     expect(b.view.container.querySelector('[data-phase]')?.getAttribute('data-phase')).toBe('active')
-    expect(b.view.queryByText('探索未至之境')).toBeNull()
+    expect(b.view.queryByText('让想象，燃起星火')).toBeNull()
   })
 
   it('settling phase: a summary that does not prove the session blank hides the composer while it opens', () => {
@@ -541,7 +556,7 @@ describe('ConversationRoot resident composer', () => {
     // blank the column for the history round-trip.
     const root = b.view.container.querySelector('[data-phase]')
     expect(root?.getAttribute('data-phase')).toBe('hero')
-    expect(b.view.getByText('探索未至之境')).toBeTruthy()
+    expect(b.view.getByText('让想象，燃起星火')).toBeTruthy()
     expect(b.view.getByRole('textbox')).toBeTruthy()
   })
 

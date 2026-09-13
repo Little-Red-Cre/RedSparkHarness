@@ -349,9 +349,7 @@
   cursor: default;
 }
 
-/* Primary send (figma IconButton 34:10465): 34px circle, #3964FE light /
-   #679EFE dark — the info-fill pair (500→400), NOT button-primary (ink);
-   white glyph; empty text = 0.4 opacity. */
+/* Primary send uses the product accent; empty text = 0.4 opacity. */
 .primary {
   display: grid;
   place-items: center;
@@ -361,9 +359,7 @@
   border: none;
   border-radius: 999px;
   corner-shape: round;
-  background: var(--dsw-alias-button-info-fill);
-  /* Static white, not the foreground token: the arrow stays white on the blue
-     fill in both themes (design 34:10465). */
+  background: var(--dsw-alias-brand-primary);
   color: #fff;
   cursor: pointer;
   transition: background-color 100ms ease;
@@ -374,7 +370,7 @@
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--dsw-alias-button-info-hover);
+  background: var(--dsw-alias-brand-text);
 }
 
 .primary:disabled {

@@ -2,6 +2,15 @@
    font-weight: 500 in this UI — non-variable webfonts snap intermediate
    weights unpredictably across platforms. */
 body {
+  --sph-crimson: #b91f3b;
+  --sph-rose: #ff788d;
+  --sph-paper: #fff9f7;
+  --sph-blush: #f8eeed;
+  --sph-ink: #241d23;
+  --sph-night: #1c171c;
+  --sph-night-panel: #282027;
+  --sph-line: #e7d3d7;
+  --sph-gold: #d59955;
   --dsw-static-amber-100: rgb(254, 245, 231);
   --dsw-static-amber-400: rgb(247, 173, 49);
   --dsw-static-amber-500: rgb(245, 158, 11);
