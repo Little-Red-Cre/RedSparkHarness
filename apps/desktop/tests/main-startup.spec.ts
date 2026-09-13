@@ -34,6 +34,7 @@ const harness = await vi.hoisted(async () => {
     readonly show = vi.fn()
     readonly focus = vi.fn()
     readonly restore = vi.fn()
+    readonly setTitleBarOverlay = vi.fn()
     constructor(readonly options: { show: boolean }) { super(); windows.push(this) }
     isDestroyed() { return this.destroyed }
     isMinimized() { return false }
@@ -42,6 +43,7 @@ const harness = await vi.hoisted(async () => {
       if (url === 'dsh-app://app/index.html') navigated.resolve()
     }
     static getAllWindows() { return windows.filter(window => !window.destroyed) }
+    static fromWebContents() { return windows[0] ?? null }
     close() { this.destroyed = true; this.emit('closed') }
   }
   class FakeHost {
@@ -74,6 +76,7 @@ const harness = await vi.hoisted(async () => {
   })
   return {
     windows, hosts, handlers, app, FakeWindow, FakeHost,
+    menuPopup: vi.fn(),
     dialog: { showErrorBox: vi.fn(), showMessageBox: vi.fn() },
     applyRelease: vi.fn(() => { preparing.resolve(); return prepared.promise }),
     assertProfileRuntime: vi.fn(),
@@ -101,7 +104,9 @@ vi.mock('electron', () => ({
   ipcMain: {
     handle: (channel: string, handler: (event: { senderFrame: { url: string } }) => unknown) => { harness.handlers.set(channel, handler) },
   },
-  Menu: { setApplicationMenu: vi.fn(), buildFromTemplate: vi.fn() },
+  Menu: { setApplicationMenu: vi.fn(), buildFromTemplate: vi.fn(),
+    getApplicationMenu: () => ({ items: [{ submenu: { popup: harness.menuPopup } }] }),
+  },
   protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
 }))
 vi.mock('../src/paths.ts', () => ({ resolveDesktopPaths: () => ({ profile: 'desktop-test-profile' }) }))
@@ -155,6 +160,21 @@ afterEach(async () => {
 })
 
 describe('desktop main startup', () => {
+  it('uses native Windows controls and rejects untrusted chrome requests', async () => {
+    vi.stubGlobal('process', { ...process, platform: 'win32' })
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    expect(harness.windows[0]?.options).toMatchObject({
+      titleBarStyle: 'hidden', autoHideMenuBar: true, titleBarOverlay: { height: 40 },
+    })
+    const colors = harness.handlers.get(DESKTOP_IPC.windowColors)! as (...args: unknown[]) => unknown
+    expect(() => colors({ senderFrame: { url: 'https://app/index.html' } }, '#ffffff', '#000000')).toThrow('unowned')
+    expect(() => colors({ senderFrame: { url: 'dsh-app://app/index.html' } }, 'bad', '#000000')).toThrow('hex')
+    colors({ senderFrame: { url: 'dsh-app://app/index.html' } }, '#ffffff', '#000000')
+    expect(harness.windows[0]?.setTitleBarOverlay).toHaveBeenCalledWith({ color: '#ffffff', symbolColor: '#000000' })
+    invoke(DESKTOP_IPC.windowMenu)
+    expect(harness.menuPopup).toHaveBeenCalledWith({ window: harness.windows[0], x: 14, y: 40 })
+  })
   it('exits with a diagnostic when both initialization and emergency navigation fail', async () => {
     const exited = Promise.withResolvers<undefined>()
     vi.spyOn(harness.app, 'getLocale').mockImplementationOnce(() => { throw new Error('locale unavailable') })

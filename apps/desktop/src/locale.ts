@@ -2,6 +2,7 @@
 
 export const en = {
   application: 'Application',
+  quit: 'Quit',
   startupFailed: 'RedSpark Harness could not start',
   startupLoading: 'Starting RedSpark Harness…',
   startupLoadingDescription: 'Your workspace will open when it is ready.',
@@ -56,6 +57,7 @@ export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
 
 export const zh = {
   application: '应用',
+  quit: '退出',
   startupFailed: 'RedSpark Harness 无法启动',
   startupLoading: '正在启动 RedSpark Harness…',
   startupLoadingDescription: '准备就绪后将自动打开工作区。',

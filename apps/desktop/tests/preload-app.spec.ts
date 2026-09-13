@@ -6,6 +6,7 @@ const electron = vi.hoisted(() => ({
   ipcRenderer: { invoke: vi.fn(), on: vi.fn(), off: vi.fn() },
 }))
 vi.mock('electron', () => electron)
+vi.mock('../src/title-bar.ts', () => ({ installTitleBar: vi.fn() }))
 
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); vi.resetModules() })
 

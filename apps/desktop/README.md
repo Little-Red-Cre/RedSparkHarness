@@ -1,10 +1,12 @@
-# DeepSeek Harness Desktop
+# RedSpark Harness Desktop
 
 English | [中文](README.zh.md)
 
 The desktop application is an Electron shell around the dsh Web UI. It opens no listening port: a bundled upstream Node.js child boots the installed dsh project, versioned framed byte pipes carry Fetch requests and streaming responses without an outer Base64 envelope, Node IPC carries lifecycle control, and `dsh-app://` serves the matching client assets.
 
 ## Key technical decisions
+
+On Windows, the integrated 40-pixel title bar retains native window buttons. Its RedSpark menu opens desktop actions, and its empty area moves the window. Colors follow the resolved application theme. macOS retains its system frame; Web pages receive no desktop chrome. The [title-bar decision](../../.agents/notes/implemented/feature/2026-09-13-desktop-title-bar.md) documents ownership and verification limits.
 
 | Decision | Why | Direct consequence |
 |---|---|---|

@@ -15,7 +15,8 @@ export function startupFailureDocument(locale: DesktopLocale, message: string, p
   return `<!doctype html><html lang="${locale.id}"><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; form-action dsh-recovery:">
 <title>${escape(locale.messages.startupFailed)}</title>
-<style>:root{color-scheme:light dark;font-family:system-ui}body{max-width:720px;margin:10vh auto;padding:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<style>:root{color-scheme:light dark;font-family:system-ui}body{max-width:720px;margin:10vh auto;padding:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere}.window-drag{position:fixed;top:0;left:0;right:148px;height:40px;-webkit-app-region:drag}</style>
+<div class="window-drag" aria-hidden="true"></div>
 <main><h1>${escape(locale.messages.startupFailed)}</h1><p>${escape(locale.messages.startupReinstallAdvice)}</p>
 ${profileRecovery ? `<p>${escape(locale.messages.startupConfigurationAdvice)}</p>` : ''}
 <pre role="alert">${escape(message)}</pre>

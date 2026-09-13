@@ -95,6 +95,11 @@ function createWindow(preload: string, show = false): BrowserWindow {
     minWidth: 880,
     minHeight: 600,
     show,
+    ...(process.platform === 'win32' ? {
+      titleBarStyle: 'hidden' as const,
+      titleBarOverlay: { color: '#fff8f8', symbolColor: '#30232a', height: 40 },
+      autoHideMenuBar: true,
+    } : {}),
     webPreferences: {
       preload,
       nodeIntegration: false,
@@ -283,6 +288,7 @@ async function main(): Promise<void> {
 
   protocol.handle(SCHEME, (request) => {
     const url = new URL(request.url)
+    if (['app', 'shell'].includes(url.hostname) && ['/sph-title-bar.css', '/redspark.svg'].includes(url.pathname)) return serveShellAsset(request)
     if (url.hostname === 'shell') return serveShellAsset(request).then((response) => {
       if (response.status >= 400 && ['/startup.html', '/startup.js', '/startup.css'].includes(url.pathname)) {
         void showEmergencyError(new Error(`Desktop recovery resource could not be loaded: ${url.pathname} (HTTP ${response.status})`))
@@ -315,6 +321,21 @@ async function main(): Promise<void> {
   ipcMain.handle(DESKTOP_IPC.localeGet, (event) => {
     assertDesktopSender(event, ['shell'])
     return locale
+  })
+  ipcMain.handle(DESKTOP_IPC.windowMenu, (event) => {
+    assertDesktopSender(event, ['app', 'shell'])
+    const window = BrowserWindow.fromWebContents(event.sender)
+    if (window !== null) Menu.getApplicationMenu()?.items[0]?.submenu?.popup({ window, x: 14, y: 40 })
+  })
+  ipcMain.handle(DESKTOP_IPC.windowColors, (event, background: unknown, foreground: unknown) => {
+    assertDesktopSender(event, ['app', 'shell'])
+    if (typeof background !== 'string' || typeof foreground !== 'string'
+      || !/^#[\da-f]{6}$/i.test(background) || !/^#[\da-f]{6}$/i.test(foreground)) {
+      throw new Error('Desktop title bar colors must be six-digit hex colors')
+    }
+    if (process.platform === 'win32') {
+      BrowserWindow.fromWebContents(event.sender)?.setTitleBarOverlay({ color: background, symbolColor: foreground })
+    }
   })
   ipcMain.handle(DESKTOP_IPC.pluginsList, (event) => {
     assertDesktopSender(event, ['shell'])
@@ -446,7 +467,7 @@ async function main(): Promise<void> {
       },
       { label: messages.checkUpdatesMenu, click: () => { void checkAndPrompt(true) } },
       { type: 'separator' },
-      { role: 'quit' },
+      { role: 'quit', label: messages.quit },
     ],
   }]))
 

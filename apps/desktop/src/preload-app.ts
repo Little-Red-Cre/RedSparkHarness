@@ -3,6 +3,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { DESKTOP_IPC, type DshDesktopStartupApi } from './ipc.ts'
 import type { DesktopBackendState } from './backend-controller.ts'
+import { installTitleBar } from './title-bar.ts'
+
+installTitleBar()
 
 const startup: DshDesktopStartupApi = {
   protocolVersion: 1,
