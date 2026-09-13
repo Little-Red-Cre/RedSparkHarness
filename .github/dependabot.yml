@@ -2,6 +2,7 @@ version: 2
 
 updates:
   - package-ecosystem: "npm"
+    open-pull-requests-limit: 0
     directory: "/"
     exclude-paths:
       # Vendored Cordis sources follow vendor/README.md instead of registry updates.
@@ -17,6 +18,7 @@ updates:
       - "area/infra"
 
   - package-ecosystem: "uv"
+    open-pull-requests-limit: 0
     directory: "/python/sdk"
     schedule:
       interval: "cron"
@@ -29,6 +31,7 @@ updates:
       - "area/infra"
 
   - package-ecosystem: "github-actions"
+    open-pull-requests-limit: 0
     directory: "/"
     schedule:
       interval: "cron"

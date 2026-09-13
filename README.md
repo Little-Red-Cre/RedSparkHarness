@@ -12,6 +12,8 @@ Upstream reference documentation (retained for development): [DeepSeek Harness d
 
 ## Developer preview
 
+RedSpark CI checks builds, types and client tests on standard Linux/Windows runners, with Linux lint and documentation checks. Upstream release, deployment and provider automation is disabled in this repository pending integration setup; its definitions and attribution remain available. Ordinary Dependabot version-update PRs are paused; security alerts are retained. This baseline does not replace exhaustive upstream coverage, browser or real-API validation.
+
 RedSpark Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
 Review the [safety notice](SAFETY.md) before running the project.

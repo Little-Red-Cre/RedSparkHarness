@@ -72,6 +72,7 @@
   transform: translateX(-50%) rotate(-8deg);
   border: 0.5px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 40%, transparent);
   border-radius: 50%;
+  corner-shape: round;
   background: radial-gradient(ellipse, color-mix(in srgb, var(--sph-crimson) 12%, transparent), transparent 70%);
   pointer-events: none;
 }

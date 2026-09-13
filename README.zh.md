@@ -12,6 +12,8 @@ RedSpark Harness（SPH）是 RedSpark 的 Agent 平台，基于 [DeepSeek AI](ht
 
 ## 开发者预览
 
+RedSpark CI 在标准 Linux/Windows runner 上检查构建、类型和客户端测试，并在 Linux 上检查 lint 与文档。本仓库的上游发布、部署和服务商自动化在完成集成配置前保持停用，工作流定义与来源声明继续保留。普通 Dependabot 版本更新 PR 已暂停，安全告警保留。这组基础检查不等同于完整的上游覆盖率、浏览器或真实 API 验证。
+
 RedSpark Harness 处于 _开发者预览_ 阶段，正在快速迭代。**未来将出现破坏兼容性的变更。**
 
 运行本项目前，请阅读[安全说明](SAFETY.zh.md)。
