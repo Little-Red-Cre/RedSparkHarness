@@ -84,6 +84,13 @@ describe('finalAssistantOutput', () => {
 })
 
 describe('AssistantOutputFold', () => {
+  it('keeps the last non-empty assistant message past a later empty message', () => {
+    const fold = new AssistantOutputFold()
+    fold.push(message([{ type: 'text', text: 'complete answer' }]))
+    fold.push(message([]))
+    expect(fold.collect()).toEqual([{ type: 'text', text: 'complete answer' }])
+  })
+
   it('folds raw text pieces into the same streamed fallback (ACP chunk transport)', () => {
     const fold = new AssistantOutputFold()
     fold.pushText('partial ')
