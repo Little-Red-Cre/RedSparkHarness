@@ -42,6 +42,8 @@ apps/web/dist/
 /output/playwright/
 /.workbuddy/
 /.local-*.log
+/PROJECT_SCAN_REPORT.md
+/report/
 .orig
 .worktrees/
 worktrees/
