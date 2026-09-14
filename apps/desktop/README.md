@@ -6,6 +6,8 @@ The desktop application is an Electron shell around the dsh Web UI. It opens no 
 
 ## Key technical decisions
 
+Links requesting a new window from `dsh-app://app` open in the system browser when their URL uses HTTP or HTTPS and contains no embedded username or password. Electron still denies the new application window. Other schemes and unowned pages cannot invoke this opener. A failed browser launch displays localized recovery advice without logging the authorization URL.
+
 On Windows, the integrated 40-pixel title bar retains native window buttons. Its RedSpark menu opens desktop actions, and its empty area moves the window. Colors follow the resolved application theme. macOS retains its system frame; Web pages receive no desktop chrome. The [title-bar decision](../../.agents/notes/implemented/feature/2026-09-13-desktop-title-bar.md) documents ownership and verification limits.
 
 | Decision | Why | Direct consequence |

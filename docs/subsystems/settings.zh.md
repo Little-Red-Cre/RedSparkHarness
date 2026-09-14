@@ -161,6 +161,10 @@ interface SettingsDescribeOptions {
 type SettingsUpdateSource = 'update' | 'provider'
 ```
 
+## 浏览器账号授权
+
+`AuthorizationEntryView` 将已启用流程的身份和方法与凭据元数据合并，不包含凭据载荷。`AuthorizationFrame` 承载 started、notice、prompt 或 settled 事件。带品牌的 `AuthorizationAttemptId` 和 `AuthorizationPromptId` 标识实时尝试与待回答问题；它们只存在于进程内，不是持久化 Session id。settings controller 的 `authorizationKeys` 决定浏览器可以列出、启动或取消哪些已注册流程。关闭事件流会撤回该次尝试，并在清理完成前释放待回答问题。
+
 ## 原生文档操作
 
 `SettingsDocumentOpenValue` 确认 `settings/openSettingsDocument` 已准备好 provider 持有的文档，并将其交给原生文本编辑器。`AgentPresetDirectoryOpenValue` 报告已完成的原生交接，或在桌面打开不可用时返回解析后的用户 preset 目录。两项操作都不接受由浏览器选择的 Host 路径。
@@ -172,6 +176,52 @@ type SettingsUpdateSource = 'update' | 'provider'
 ## Cordis API
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxauthorizationcontroller--authorizationcontroller"></a>
+
+### `ctx.authorizationController` — `AuthorizationController`
+
+Host owner of the generated `ctx.remote.authorization` namespace.
+
+```ts cordis-catalog
+/**
+ * List browser-enabled flows and their stored-record state.
+ * @returns Enabled registered flows joined with redacted stored-record state.
+ */
+@Remote async list(): Promise<AuthorizationEntryView[]>
+
+/**
+ * Run one flow and stream its notices and prompts to the initiating browser.
+ * @param key - Credential key owned by the registered flow.
+ * @param method - Optional flow-owned method identifier.
+ * @param signal - Browser stream lifetime.
+ * @returns Notices, prompts, and final status for this attempt.
+ */
+@Remote({ mode: 'stream' }) async * authorize(key: string, method: string | undefined, signal: AbortSignal): AsyncIterable<AuthorizationFrame>
+
+/**
+ * Answer the prompt currently displayed for one attempt.
+ * @param attemptId - Opaque identifier returned by the stream.
+ * @param promptId - Opaque identifier of the pending prompt.
+ * @param value - User-entered answer passed to the Host flow.
+ */
+@Remote answer(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId, value: string): void
+
+/**
+ * Decline the prompt currently displayed for one attempt.
+ * @param attemptId - Opaque identifier returned by the stream.
+ * @param promptId - Opaque identifier of the pending prompt.
+ */
+@Remote decline(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId): void
+
+/**
+ * Withdraw the flow currently running for a credential key.
+ * @param key - Credential key owned by the running flow.
+ */
+@Remote cancel(key: string): void
+```
+
+Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)
 
 <a id="ctxsettings--settingsprovider-abstract-seam"></a>
 

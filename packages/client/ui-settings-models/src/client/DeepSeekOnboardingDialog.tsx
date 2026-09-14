@@ -9,6 +9,7 @@ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
 import { onboardingReadiness, protocolChoices } from './store.ts'
+import { isSubscriptionProvider } from './authorized-provider.ts'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
@@ -79,7 +80,8 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
       return assertNever(readiness)
   }
 
-  const providers = state.rows.filter(candidate => state.namespaces.has(candidate.entry.settingsNs))
+  const providers = state.rows.filter(candidate => state.namespaces.has(candidate.entry.settingsNs)
+    && !isSubscriptionProvider(candidate.entry))
   const row = providers.find(candidate => candidate.entry.provider === selected)
   const namespace = row === undefined ? undefined : state.namespaces.get(row.entry.settingsNs)
   const customNamespace = state.namespaces.get('llm-pi-ai')
@@ -105,7 +107,7 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
       </select>
       <div className={styles.editor}>
         {selected === '' && customNamespace !== undefined ? <CustomProviderCard
-          taken={providers.map(candidate => candidate.entry.provider)}
+          taken={state.rows.map(candidate => candidate.entry.provider)}
           protocols={protocols}
           revision={customNamespace.revision}
           operations={operations}

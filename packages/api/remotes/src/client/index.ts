@@ -111,6 +111,10 @@ export type { CredentialInfo } from '@deepseek-ai/dsh-credentials/types'
 // Redacted namespace vocabulary for the settings namespace (secrets never ride
 // it). It travels with its seam, whose `./types` the Client face already reads.
 export type {
+  AuthorizationAttemptId, AuthorizationEntryView, AuthorizationFrame,
+  AuthorizationPromptId, AuthorizationPromptView,
+} from '@deepseek-ai/dsh-api-settings-controller/types'
+export type {
   SettingsDescribeValue, SettingsNamespaceView, SettingsPathOpView, SettingsSecretView,
 } from '@deepseek-ai/dsh-settings/types'
 // Provider registry and discovery vocabulary for the llm namespace.

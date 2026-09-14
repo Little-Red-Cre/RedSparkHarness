@@ -1,5 +1,5 @@
 ---
-description: "Host Remote owner for settings and credential configuration surfaces, including redacted reads, writes, credential references, and native document opening."
+description: "Host Remote owner for settings, credentials, and human-guided authorization configuration surfaces."
 kind: "package-reference"
 ---
 # Settings Controller
@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@deepseek-ai/dsh-api-settings-controller` exposes generated `ctx.remote.settings` and `ctx.remote.credentials` namespaces for browser configuration surfaces. It returns redacted settings and credential metadata, supports settings and credential writes without returning secret values, and opens provider-owned settings or Agent preset locations on the Host desktop. When a provider is absent, the namespace remains registered and returns an actionable configuration error.
+`@deepseek-ai/dsh-api-settings-controller` exposes generated `ctx.remote.settings`, `ctx.remote.credentials`, and `ctx.remote.authorization` namespaces for browser configuration surfaces. It returns redacted settings and credential metadata, supports settings and credential writes without returning secret values, streams provider-owned sign-in conversations, and opens provider-owned settings or Agent preset locations on the Host desktop. When a provider is absent, the namespace remains registered and returns an actionable configuration error.
 
 ## Table of Contents
 
@@ -33,12 +33,15 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 
 -----
 
+`authorization.list()` joins only flows selected by `authorizationKeys` with redacted credential-record state. No account flow is exposed by default; the Web bundle selects only `llm-pi-ai/openai-codex`. Unselected keys are rejected by both `authorize` and `cancel`. `authorization.authorize()` streams notices and prompts only to the browser that started the attempt; `answer`, `decline`, and `cancel` control that live attempt. The controller never interprets OAuth tokens and no credential value travels back to the browser.
+
 <a id="configuration"></a>
 ## Configuration
 
 | Field | Default | Meaning |
 |---|---|---|
 | `nativeOpen` | platform-detected | Whether Agent preset directories can be handed to a native desktop opener |
+| `authorizationKeys` | `[]` | Credential keys whose registered account flows the browser may list, start, and cancel |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-api-settings-controller) is the exhaustive source for accepted fields and their JSDoc.
 
@@ -69,4 +72,4 @@ None.
 
 </details>
 
-**Runtime invariant:** No companion is published. The settings and credential seams own storage and update events, while this package only projects their methods onto the wire.
+**Runtime invariant:** No companion is published. The settings, credential, and authorization seams own state and lifecycle; this package only projects redacted configuration views and live authorization interaction onto the wire.

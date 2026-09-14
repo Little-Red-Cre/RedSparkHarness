@@ -599,6 +599,74 @@ select.input {
   color: var(--dsw-alias-state-error-primary);
 }
 
+.authorization {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.authorizationTitle,
+.authorizationIntro {
+  margin: 0;
+}
+
+.authorizationTitle {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.authorizationIntro,
+.authorizationStatus {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authorizationRow,
+.authorizationIdentity,
+.authorizationMessage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.authorizationRow {
+  min-height: 36px;
+}
+
+.authorizationIdentity {
+  min-width: 0;
+}
+
+.authorizationMessage,
+.authorizationPrompt {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.authorizationMessage {
+  flex-wrap: wrap;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authorizationCode {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-1);
+  font-family: var(--ds-font-family-code);
+}
+
+.authorizationPrompt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .deleteDialog {
   width: min(480px, 100%);
 }

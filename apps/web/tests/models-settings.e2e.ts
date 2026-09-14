@@ -13,7 +13,8 @@
 // never shadow the derived reference. The deletion dialog distinguishes a
 // reference-free profile from a page-managed key before the credential and
 // settings unsets reach the wire.
-import { readFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
+import { load, dump } from 'js-yaml'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import type { Browser, Page } from 'playwright'
@@ -76,10 +77,50 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     const options = await pick.locator('option').allTextContents()
     expect(options).toContain('anthropic')
     expect(options).toContain('minimax-cn')
+    expect(options).not.toContain('openai-codex')
+    expect(await dialog.getByRole('region', { name: 'API 模型', exact: true }).count()).toBe(1)
+    expect(await dialog.getByRole('region', { name: '订阅模型', exact: true })
+      .getByRole('group', { name: 'OpenAI Codex', exact: true }).count()).toBe(1)
     await pick.selectOption('minimax-cn')
     await dialog.getByRole('textbox', { name: 'API 密钥', exact: true }).waitFor({ timeout: 10_000 })
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(EMPTY_EXPECTED, snapshot, MODE)
+  }, 60_000)
+
+  it('opens the Codex authorization URL and releases the attempt on cancel', async () => {
+    const account = page.getByRole('group', { name: 'OpenAI Codex', exact: true })
+    await page.context().route('https://auth.openai.com/**', route => route.fulfill({
+      contentType: 'text/html', body: '<title>OAuth test destination</title>',
+    }))
+    const login = account.getByRole('button', { name: '登录并添加模型', exact: true })
+    try {
+      await login.click()
+      await account.getByRole('combobox', { name: 'Select OpenAI Codex login method:' })
+        .selectOption({ label: 'Browser login (default)' })
+      await account.getByRole('button', { name: '继续', exact: true }).click()
+      const link = account.getByRole('link', { name: '打开登录页面' })
+      await link.waitFor({ timeout: 15_000 })
+      const opened = page.waitForEvent('popup')
+      await link.click()
+      const popup = await opened
+      try {
+        await popup.waitForLoadState()
+        expect(new URL(popup.url()).origin).toBe('https://auth.openai.com')
+        expect(await popup.title()).toBe('OAuth test destination')
+      } finally {
+        await popup.close()
+      }
+      await account.getByRole('button', { name: '取消', exact: true }).first().click()
+      await expect.poll(() => login.isEnabled(), { timeout: 15_000 }).toBe(true)
+      expect(await account.getByRole('link').count()).toBe(0)
+    } finally {
+      const cancel = account.getByRole('button', { name: '取消', exact: true }).first()
+      if (await cancel.count() > 0) {
+        await cancel.click()
+        await expect.poll(() => login.isEnabled(), { timeout: 15_000 }).toBe(true)
+      }
+      await page.context().unroute('https://auth.openai.com/**')
+    }
   }, 60_000)
 
   it('refuses a key no HTTP header can carry before anything is written', async () => {
@@ -236,7 +277,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     // capability, the models under one provider disagree about it, and a
     // switch in the composer already records provider+model+effort together.
     expect(await dialog.getByLabel('推理强度').count()).toBe(0)
-    await dialog.getByRole('button', { name: '添加模型' }).click()
+    await dialog.getByRole('button', { name: '添加模型', exact: true }).click()
     await dialog.getByLabel('模型 ID 1').fill('acme-large')
     await dialog.getByRole('button', { name: '创建提供方', exact: true }).click()
 
@@ -322,11 +363,50 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
+  it('automatically adds models for a stored subscription account without an API row or activation button', async () => {
+    // Only the external account grant is synthetic; discovery, settings writes, and rendering use the shipped Host.
+    const credentialFile = join(scaffold.harnessHome, '.credentials.yaml')
+    const credentials = load(await readFile(credentialFile, 'utf8')) as { records: Record<string, unknown> }
+    credentials.records['llm-pi-ai/openai-codex'] = {
+      kind: 'grant', payload: { type: 'oauth', access: 'test-access', refresh: 'test-refresh', expires: 4102444800000 },
+    }
+    let observed = false
+    const stop = scaffold.ctx.on('credentials/record-updated', (key) => {
+      if (key === 'llm-pi-ai/openai-codex') observed = true
+    })
+    try {
+      await writeFile(credentialFile, dump(credentials))
+      await expect.poll(() => observed, { timeout: 10_000 }).toBe(true)
+    } finally {
+      stop()
+    }
+    await page.getByRole('button', { name: '设置', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: '设置' })
+    await dialog.getByRole('button', { name: '模型', exact: true }).click()
+    const subscription = dialog.getByRole('region', { name: '订阅模型', exact: true })
+    await subscription.getByText('模型已添加', { exact: true }).waitFor({ timeout: 15_000 })
+    expect(await dialog.getByRole('region', { name: 'API 模型', exact: true }).getByText('openai-codex').count()).toBe(0)
+    expect(await subscription.getByRole('button', { name: '启用模型', exact: true }).count()).toBe(0)
+    const document = await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')
+    expect(document).toContain('openai-codex: {}')
+    expect(document).not.toContain('OPENAI_CODEX_API_KEY')
+    const snapshot = await captureStableAria(page, '[aria-labelledby="models-authorization-title"]', scaffold.workspaceCwd)
+    await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'subscription-ready.expected.md'), snapshot, MODE)
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: '设置', exact: true }).click()
+    await dialog.getByRole('button', { name: '模型', exact: true }).click()
+    await subscription.getByText('模型已添加', { exact: true }).waitFor({ timeout: 15_000 })
+    expect(await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')).toBe(document)
+    expect(await page.content()).not.toContain('test-access')
+    expect(tripwire.pageErrors).toEqual([])
+    await page.keyboard.press('Escape')
+  }, 60_000)
+
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, [
       'configured.expected.md', 'declared-edit.expected.md', 'declared.expected.md',
       'delete.expected.md', 'empty.expected.md', 'model-picker.expected.md',
-      'native-delete.expected.md',
+      'native-delete.expected.md', 'subscription-ready.expected.md',
     ])
   })
 })

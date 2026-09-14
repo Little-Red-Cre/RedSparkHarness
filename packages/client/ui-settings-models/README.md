@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-client-ui-settings-models` is the Models settings page of the dsh web client: users configure API keys (stored write-only under the profile's credential reference), edit each provider's model list, and hand-declare custom pi-ai routes, with provider rows and one editor card at a time. The page joins the provider directory, the settings document, and the credential descriptions into one shared snapshot, so a row's state stays consistent across all three. It also walks first-run users through two ordered dialogs — a versioned internal-testing notice and the conditional official-DeepSeek credential step.
+`dsh-client-ui-settings-models` is the Models settings page of the dsh web client: users configure API keys (stored write-only under the profile's credential reference), run provider-owned account sign-in flows, edit each provider's model list, and hand-declare custom pi-ai routes, with provider rows and one editor card at a time. The page joins the provider directory, the settings document, and the credential descriptions into one shared snapshot, so a row's state stays consistent across all three. It also walks first-run users through two ordered dialogs — a versioned internal-testing notice and the conditional official-DeepSeek credential step.
 
 ## Table of Contents
 
@@ -29,9 +29,15 @@ Open the Models page from the Settings navigation to see every configured provid
 
 A provider with a stored catalog error remains visible with its diagnostic and edit/delete actions. Add actions are offered only for registered settings namespaces, so an unavailable namespace cannot leave a button that opens no editor. A rejected save leaves the editor open and displays the Host diagnostic.
 
-### API keys
+### API models
 
 The primary field on an editor card is a single **API key** input — the page never asks for an environment-variable name. A typed key stores write-only through `credentials.set` under the profile's reference, deriving `<ROUTE>_API_KEY` when the profile has none, and the pi-ai profile records that derivation as `apiKeyEnv`, so `settings.yaml` never carries a key value. Leaving a new pi-ai provider's key blank saves a reference-free profile and preserves provider-native authentication (for example the Bedrock credential chain or Vertex ADC). A row labels API-key state with a green solid dot only when a referenced credential is confirmed configured, and with a red solid dot only when a named reference is confirmed missing. A successful Apply emits a local accessible status message without echoing secret material.
+
+### Subscription models
+
+The shipped Web profile exposes OpenAI Codex under **Subscription models**. Its configured route and dormant catalog entry are excluded from API-model rows and provider choices, including first-run API-key setup. Other adapters' registered login flows remain hidden unless the Host explicitly enables them.
+
+Click **Sign in and add models** under OpenAI Codex. Sign-in feedback and the browser link appear beneath that account; progress notices preserve the last valid link. The Host owns the authorization flow and credential record. Successful sign-in automatically creates a missing `openai-codex` profile without an API-key reference. Opening the panel with an already signed-in account performs the same check without another login or activation button. The revision-fenced write preserves existing profiles; API-key overrides, read-only settings, or registration failures display an error and **Retry adding models**. Closing the panel cancels preparation before a settings write starts; committed settings remain. Select a Codex model in the conversation model picker, then send a message; existing session choices are not changed automatically. RedSpark continues to run the Agent Loop. Real-account authorization and subscription inference require manual verification.
 
 ### Editing a provider
 
@@ -120,4 +126,4 @@ None.
 
 </details>
 
-**Runtime invariant:** No companion is published. A nav-entry-only section plugin rendering a fixed empty content column — it emits no cordis events and owns no cross-plugin mutable relation.
+**Runtime invariant:** No companion is published. The section uses generated Remotes to read redacted state, perform explicit configuration writes, and forward authorization answers from the current browser; it neither owns provider credentials nor participates in the Agent Loop.

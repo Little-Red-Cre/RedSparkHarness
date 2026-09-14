@@ -18,6 +18,12 @@
       "path": "../../preset/agent-presets"
     },
     {
+      "path": "../../credentials/authorization"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
       "path": "../../credentials/credentials"
     },
     {

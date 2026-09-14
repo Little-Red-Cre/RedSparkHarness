@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-14-codex-subscription-model-bridge.md
+2026-09-14-codex-subscription-model-bridge.md: 26808553bf6068eaa7b49896dcf0d0fb5cc9f4f1
+2026-09-14-codex-subscription-model-bridge.zh.md: 4abb46ee5e8cd20c02e04fb1c2fa174eb27c060b

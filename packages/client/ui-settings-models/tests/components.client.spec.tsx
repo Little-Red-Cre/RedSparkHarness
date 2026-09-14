@@ -307,6 +307,26 @@ async function mountDeepSeekCard(overrides: Parameters<typeof scriptedFace>[0] =
 }
 
 describe('ModelsSection', () => {
+  it.each([false, true])('excludes Codex from API rows and add choices when configured=%s', async (configured) => {
+    const scripted = scriptedFace()
+    const directory = (await scripted.face.llm.listConfigurableProviders()).value
+    scripted.face.llm.listConfigurableProviders.mockResolvedValue(remoteOk([...directory, {
+      provider: 'openai-codex', displayName: 'OpenAI Codex', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai-codex'],
+    }]))
+    if (configured) {
+      const namespaces = wireNamespaces()
+      const view = namespaces.find(entry => entry.ns === 'llm-pi-ai')!
+      view.value = { providers: { 'openai-codex': {} } }
+      scripted.face.settings.describe.mockResolvedValue(remoteOk({ writable: true, hasDocument: true, namespaces }))
+    }
+    await mountFace(scripted)
+    const api = within(screen.getByRole('region', { name: en.apiModelsTitle }))
+    expect(api.queryByText('OpenAI Codex')).toBeNull()
+    fireEvent.click(api.getByRole('button', { name: en.add }))
+    expect(api.queryByRole('option', { name: 'OpenAI Codex' })).toBeNull()
+    expect(api.getByRole('option', { name: 'anthropic' })).toBeTruthy()
+  })
+
   it('hides both add actions when their settings namespaces are absent', async () => {
     const scripted = scriptedFace()
     scripted.face.settings.describe.mockResolvedValue(remoteOk({ writable: true, hasDocument: false, namespaces: [] }))
