@@ -65,10 +65,12 @@ export class AssistantOutputFold {
  * @returns the selected output, or `undefined` when the child produced none.
  */
 export function finalAssistantOutput(events: readonly SessionEvent[]): ContentBlock[] | undefined {
-  // TODO: this folds the complete suffix once per run/epoch settlement. If a
-  // long continuable epoch ever profiles hot here, scan backward with early
-  // exit for the last non-empty message and fold text deltas only on the
-  // no-message fallback.
+  // A completed message wins without decoding earlier embedded streams; only
+  // message-free epochs need the chronological text fallback.
+  const message = events.findLast(event =>
+    event.type === 'assistant/message' && event.data.message.content.length > 0,
+  )
+  if (message?.type === 'assistant/message') return message.data.message.content
   const fold = new AssistantOutputFold()
   for (const event of events) fold.push(event)
   return fold.collect()
