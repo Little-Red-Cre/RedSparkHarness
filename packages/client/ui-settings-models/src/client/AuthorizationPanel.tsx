@@ -17,12 +17,13 @@ interface ActivePrompt {
   readonly prompt: AuthorizationPromptView
 }
 
-/** Accept only browser-navigation schemes from provider-owned notices. */
+/** Accept credential-free browser-navigation URLs from provider-owned notices. */
 function safeNoticeUrl(value: string | undefined): string | undefined {
   if (value === undefined) return undefined
   try {
     const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? value : undefined
+    return (url.protocol === 'http:' || url.protocol === 'https:')
+      && url.username === '' && url.password === '' ? url.href : undefined
   } catch {
     return undefined
   }
@@ -52,6 +53,7 @@ export function AuthorizationPanel({ remote, t, onAuthorized }: AuthorizationPan
   const [enabledKey, setEnabledKey] = useState<string>()
   const [enablingKey, setEnablingKey] = useState<string>()
   const controller = useRef<AbortController>()
+  const currentPrompt = useRef<ActivePrompt>()
   const lifetime = useRef<AbortController>()
 
   const addModels = async (entry: AuthorizationEntryView, signal?: AbortSignal): Promise<void> => {
@@ -100,6 +102,7 @@ export function AuthorizationPanel({ remote, t, onAuthorized }: AuthorizationPan
       lifetime.current = undefined
       controller.current?.abort()
       controller.current = undefined
+      currentPrompt.current = undefined
     }
   }, [])
 
@@ -111,6 +114,7 @@ export function AuthorizationPanel({ remote, t, onAuthorized }: AuthorizationPan
     setSelectedKey(entry.key)
     setLoginUrl(undefined)
     setNotice(undefined)
+    currentPrompt.current = undefined
     setPrompt(undefined)
     setAnswer('')
     setError(undefined)
@@ -124,9 +128,12 @@ export function AuthorizationPanel({ remote, t, onAuthorized }: AuthorizationPan
             const url = safeNoticeUrl(frame.notice.url)
             if (url !== undefined) setLoginUrl(url)
           } else if (frame.type === 'prompt') {
-            setPrompt({ attemptId: frame.attemptId, promptId: frame.promptId, prompt: frame.prompt })
+            const nextPrompt = { attemptId: frame.attemptId, promptId: frame.promptId, prompt: frame.prompt }
+            currentPrompt.current = nextPrompt
+            setPrompt(nextPrompt)
             setAnswer('')
           } else if (frame.type === 'settled' && frame.status === 'authorized') {
+            currentPrompt.current = undefined
             setPrompt(undefined)
             setLoginUrl(undefined)
             setNotice(undefined)
@@ -139,6 +146,7 @@ export function AuthorizationPanel({ remote, t, onAuthorized }: AuthorizationPan
         if (controller.current === next) {
           controller.current = undefined
           setActiveKey(undefined)
+          currentPrompt.current = undefined
           setPrompt(undefined)
           setLoginUrl(undefined)
           setNotice(undefined)
@@ -151,22 +159,32 @@ export function AuthorizationPanel({ remote, t, onAuthorized }: AuthorizationPan
   const submitPrompt = (value: string): void => {
     if (prompt === undefined) return
     const pending = prompt
+    const attempt = controller.current
+    const isCurrent = (): boolean => controller.current === attempt
+      && attempt?.signal.aborted === false && currentPrompt.current === pending
     void remote.answer(pending.attemptId, pending.promptId, value).then((result) => {
+      if (!isCurrent()) return
       if (!result.ok) { setError(result.error.message); return }
+      currentPrompt.current = undefined
       setPrompt(current => current === pending ? undefined : current)
     }).catch((cause: unknown) => {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : String(cause))
     })
   }
 
   const declinePrompt = (): void => {
     if (prompt === undefined) return
     const pending = prompt
+    const attempt = controller.current
+    const isCurrent = (): boolean => controller.current === attempt
+      && attempt?.signal.aborted === false && currentPrompt.current === pending
     void remote.decline(pending.attemptId, pending.promptId).then((result) => {
+      if (!isCurrent()) return
       if (!result.ok) { setError(result.error.message); return }
+      currentPrompt.current = undefined
       setPrompt(current => current === pending ? undefined : current)
     }).catch((cause: unknown) => {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : String(cause))
     })
   }
 

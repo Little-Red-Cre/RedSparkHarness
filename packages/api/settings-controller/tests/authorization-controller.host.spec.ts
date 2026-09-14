@@ -49,7 +49,7 @@ describe('the authorization Remote namespace a configuration surface calls', () 
     expect(ctx.authorization.describe(KEY)?.inFlight).toBe(false)
   })
 
-  it('hides other registered providers and rejects their start and cancel requests', async () => {
+  it('hides other registered providers and rejects their start requests', async () => {
     const { ctx, controller } = await boot()
     const otherKey = credentialKey('llm-pi-ai', 'other-provider')
     const run = vi.fn(async () => {})
@@ -57,7 +57,6 @@ describe('the authorization Remote namespace a configuration surface calls', () 
     expect(await controller.list()).toEqual([])
     const stream = controller.authorize(otherKey, undefined, new AbortController().signal)[Symbol.asyncIterator]()
     await expect(stream.next()).rejects.toMatchObject({ code: 'authorization/rejected' })
-    expect(() => { controller.cancel(otherKey) }).toThrow('account sign-in is not enabled')
     expect(run).not.toHaveBeenCalled()
   })
 
@@ -77,7 +76,7 @@ describe('the authorization Remote namespace a configuration surface calls', () 
     await expect(ctx.authorizationController.list()).rejects.toMatchObject({ code: 'gateway/internal' })
   })
 
-  it('publishes one streamed conversation and three direct controls', async () => {
+  it('publishes one streamed conversation and two attempt-scoped prompt controls', async () => {
     const { controller } = await boot()
     expect(controller.typertRemote).toMatchObject({
       serviceKey: 'authorizationController',
@@ -88,8 +87,24 @@ describe('the authorization Remote namespace a configuration surface calls', () 
       { method: 'authorize', mode: 'stream', invocation: { kind: 'direct' } },
       { method: 'answer', invocation: { kind: 'direct' } },
       { method: 'decline', invocation: { kind: 'direct' } },
-      { method: 'cancel', invocation: { kind: 'direct' } },
     ])
+  })
+
+  it('redacts arbitrary provider failures while retaining allowlisted authorization codes', async () => {
+    const { ctx, controller } = await boot()
+    ctx.authorization.registerFlow({
+      key: KEY, label: 'OpenAI Codex', methods: [{ id: 'oauth', label: 'Login' }],
+      async run() {
+        throw new Error('token response https://callback.example/?code=secret-code access_token=secret-token')
+      },
+    })
+    const iterator = controller.authorize(KEY, 'oauth', new AbortController().signal)[Symbol.asyncIterator]()
+    await iterator.next()
+    await expect(iterator.next()).rejects.toMatchObject({
+      code: 'authorization/rejected',
+      message: 'account sign-in failed; try again',
+      details: {},
+    })
   })
 
   it('streams notices and prompts, accepts the answer, and reports the committed record', async () => {

@@ -10,7 +10,7 @@ pi-ai 适配器已经能够使用 ChatGPT 为 `openai-codex` 鉴权并发送消�
 
 ## Decision
 
-Web profile 挂载 `ctx.authorization`，并通过 settings controller 的 `authorizationKeys` 只选择 `llm-pi-ai/openai-codex`。Controller 默认不暴露任何流程，并拒绝未选中 key 的启动和取消请求，区分适配器注册与产品支持的账号登录。Models 页面在所选账号下方渲染通知与问题，并在进度更新时保留登录 URL。OAuth grant 始终是 Host 内由 `llm-pi-ai` 持有的凭据记录。
+Web profile 挂载 `ctx.authorization`，并通过 settings controller 的 `authorizationKeys` 只选择 `llm-pi-ai/openai-codex`。Controller 默认不暴露任何流程，并拒绝未选中 key 的启动请求。发起方 Remote 事件流独占取消权，不向其他浏览器连接暴露按凭据 key 取消的操作。提供方失败只以固定安全文案和白名单授权错误码经过 wire。该机制区分适配器注册与产品支持的账号登录。Models 页面在所选账号下方渲染通知与问题，并在进度更新时保留登录 URL。OAuth grant 与提供方原始错误始终只留在 Host。
 
 ```mermaid
 flowchart LR

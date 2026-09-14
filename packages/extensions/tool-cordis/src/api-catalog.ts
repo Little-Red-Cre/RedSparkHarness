@@ -620,11 +620,6 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Decline the prompt currently displayed for one attempt.',
         parameters: [{ name: 'attemptId', description: 'Opaque identifier returned by the stream.' }, { name: 'promptId', description: 'Opaque identifier of the pending prompt.' }],
       },
-      {
-        signature: '@Remote cancel(key: string): void',
-        description: 'Withdraw the flow currently running for a credential key.',
-        parameters: [{ name: 'key', description: 'Credential key owned by the running flow.' }],
-      },
     ],
   },
   {

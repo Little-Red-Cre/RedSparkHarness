@@ -163,7 +163,7 @@ type SettingsUpdateSource = 'update' | 'provider'
 
 ## 浏览器账号授权
 
-`AuthorizationEntryView` 将已启用流程的身份和方法与凭据元数据合并，不包含凭据载荷。`AuthorizationFrame` 承载 started、notice、prompt 或 settled 事件。带品牌的 `AuthorizationAttemptId` 和 `AuthorizationPromptId` 标识实时尝试与待回答问题；它们只存在于进程内，不是持久化 Session id。settings controller 的 `authorizationKeys` 决定浏览器可以列出、启动或取消哪些已注册流程。关闭事件流会撤回该次尝试，并在清理完成前释放待回答问题。
+`AuthorizationEntryView` 将已启用流程的身份和方法与凭据元数据合并，不包含凭据载荷。`AuthorizationFrame` 承载 started、notice、prompt 或 settled 事件。带品牌的 `AuthorizationAttemptId` 和 `AuthorizationPromptId` 标识实时尝试与待回答问题；它们只存在于进程内，不是持久化 Session id。settings controller 的 `authorizationKeys` 决定浏览器可以列出和启动哪些已注册流程。关闭发起方事件流是浏览器唯一的取消路径；该操作会撤回本次尝试，并在清理完成前释放待回答问题。提供方失败只暴露固定安全文案和白名单授权错误码，原始 cause 保留在 Host。
 
 ## 原生文档操作
 
@@ -213,12 +213,6 @@ Host owner of the generated `ctx.remote.authorization` namespace.
  * @param promptId - Opaque identifier of the pending prompt.
  */
 @Remote decline(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId): void
-
-/**
- * Withdraw the flow currently running for a credential key.
- * @param key - Credential key owned by the running flow.
- */
-@Remote cancel(key: string): void
 ```
 
 Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)

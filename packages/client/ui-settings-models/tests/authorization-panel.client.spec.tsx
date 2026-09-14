@@ -15,7 +15,7 @@ describe('Models authorization panel', () => {
       list: vi.fn().mockResolvedValue({ ok: true, value: [{ key: 'llm-pi-ai/openai-codex',
         label: 'OpenAI Codex', configured: true, writable: true, inFlight: false,
         methods: [{ id: 'oauth', label: 'Login' }] }] }),
-      authorize: vi.fn(), answer: vi.fn(), decline: vi.fn(), cancel: vi.fn(),
+      authorize: vi.fn(), answer: vi.fn(), decline: vi.fn(),
     }
     const onAuthorized = vi.fn().mockRejectedValueOnce(new Error('settings changed')).mockResolvedValue(undefined)
     render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={onAuthorized} />)
@@ -48,7 +48,7 @@ describe('Models authorization panel', () => {
         key: label, label, methods: [{ id: 'oauth', label: `Login ${label}` }],
         inFlight: false, configured: false, writable: true,
       })) }),
-      authorize, answer: vi.fn(), decline: vi.fn(), cancel: vi.fn(),
+      authorize, answer: vi.fn(), decline: vi.fn(),
     }
     render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={() => Promise.resolve()} />)
     await screen.findByRole('group', { name: 'OpenAI Codex' })
@@ -118,7 +118,6 @@ describe('Models authorization panel', () => {
       authorize,
       answer,
       decline: vi.fn(),
-      cancel: vi.fn(),
     }
     render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={onAuthorized} />)
 
@@ -157,7 +156,6 @@ describe('Models authorization panel', () => {
       authorize,
       answer: vi.fn(),
       decline: vi.fn(),
-      cancel: vi.fn(),
     }
     const view = render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={() => Promise.resolve()} />)
 
@@ -166,5 +164,74 @@ describe('Models authorization panel', () => {
       expect(screen.getByRole('button', { name: en.authorizationLoginAdd })).toHaveProperty('disabled', false)
     })
     expect(view.container.querySelector('a')).toBeNull()
+  })
+
+  it('rejects notice URLs with embedded credentials', async () => {
+    async function* authorize(): AsyncIterable<AuthorizationFrame> {
+      yield { type: 'notice', notice: { message: 'Unsafe', url: 'https://user:password@auth.example/login' } }
+      yield { type: 'settled', status: 'cancelled' }
+    }
+    const remote = {
+      list: vi.fn().mockResolvedValue({ ok: true, value: [{
+        key: 'llm-pi-ai/openai-codex', label: 'OpenAI Codex', configured: false, writable: true, inFlight: false,
+        methods: [{ id: 'oauth', label: 'Login' }],
+      }] }),
+      authorize, answer: vi.fn(), decline: vi.fn(),
+    }
+    render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={() => Promise.resolve()} />)
+    fireEvent.click(await screen.findByRole('button', { name: en.authorizationLoginAdd }))
+    await screen.findByText('Unsafe')
+    expect(screen.queryByRole('link', { name: en.authorizationOpenPage })).toBeNull()
+  })
+
+  it('renders the normalized form of a credential-free notice URL', async () => {
+    async function* authorize(): AsyncIterable<AuthorizationFrame> {
+      yield { type: 'notice', notice: { message: 'Safe', url: 'https://AUTH.example:443/login/../oauth' } }
+      await new Promise(() => {})
+    }
+    const remote = {
+      list: vi.fn().mockResolvedValue({ ok: true, value: [{
+        key: 'llm-pi-ai/openai-codex', label: 'OpenAI Codex', configured: false, writable: true, inFlight: false,
+        methods: [{ id: 'oauth', label: 'Login' }],
+      }] }),
+      authorize, answer: vi.fn(), decline: vi.fn(),
+    }
+    render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={() => Promise.resolve()} />)
+    fireEvent.click(await screen.findByRole('button', { name: en.authorizationLoginAdd }))
+    expect((await screen.findByRole('link', { name: en.authorizationOpenPage })).getAttribute('href'))
+      .toBe('https://auth.example/oauth')
+  })
+
+  it('ignores a stale prompt answer failure after a new attempt starts', async () => {
+    let rejectAnswer!: (error: Error) => void
+    const answer = vi.fn(() => new Promise((_, reject) => { rejectAnswer = reject }))
+    let attempt = 0
+    async function* authorize(_key: string, _method: string, signal: AbortSignal): AsyncIterable<AuthorizationFrame> {
+      attempt += 1
+      const id = `attempt-${attempt}`
+      yield { type: 'prompt', attemptId: id as never, promptId: `prompt-${attempt}` as never,
+        prompt: { kind: 'text', message: `Code ${attempt}` } }
+      await new Promise<void>((resolve) => { signal.addEventListener('abort', () => { resolve() }, { once: true }) })
+    }
+    const remote = {
+      list: vi.fn().mockResolvedValue({ ok: true, value: [{
+        key: 'llm-pi-ai/openai-codex', label: 'OpenAI Codex', configured: false, writable: true, inFlight: false,
+        methods: [{ id: 'oauth', label: 'Login' }],
+      }] }),
+      authorize, answer, decline: vi.fn(),
+    }
+    render(<AuthorizationPanel remote={remote as never} t={t} onAuthorized={() => Promise.resolve()} />)
+    const login = await screen.findByRole('button', { name: en.authorizationLoginAdd })
+    fireEvent.click(login)
+    fireEvent.change(await screen.findByLabelText('Code 1'), { target: { value: 'old-code' } })
+    fireEvent.click(screen.getByRole('button', { name: en.authorizationContinue }))
+    fireEvent.click(screen.getAllByRole('button', { name: en.cancel })[0] as HTMLButtonElement)
+    await waitFor(() => { expect(login).toHaveProperty('disabled', false) })
+    fireEvent.click(login)
+    await screen.findByLabelText('Code 2')
+    rejectAnswer(new Error('stale answer failure'))
+    await Promise.resolve()
+    expect(screen.queryByText('stale answer failure')).toBeNull()
+    expect(screen.getByLabelText('Code 2')).toBeTruthy()
   })
 })

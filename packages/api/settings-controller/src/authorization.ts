@@ -106,12 +106,23 @@ function promptView(prompt: AuthorizationPrompt): AuthorizationPromptView {
 }
 
 function remoteFailure(error: unknown): RemoteError<'authorization/rejected'> {
-  if (error instanceof AuthorizationError) {
-    return new RemoteError('authorization/rejected', error.message, { authorizationCode: error.code }, { cause: error })
+  const messages: Readonly<Record<string, string>> = {
+    ALREADY_IN_FLIGHT: 'account sign-in is already in progress',
+    NO_FLOW: 'account sign-in is unavailable for this provider',
+    NOT_COMMITTED: 'account sign-in finished without saving the account',
+    UNKNOWN_METHOD: 'the selected account sign-in method is unavailable',
+  }
+  if (error instanceof AuthorizationError && Object.hasOwn(messages, error.code)) {
+    return new RemoteError(
+      'authorization/rejected',
+      messages[error.code] as string,
+      { authorizationCode: error.code },
+      { cause: error },
+    )
   }
   return new RemoteError(
     'authorization/rejected',
-    error instanceof Error ? error.message : String(error),
+    'account sign-in failed; try again',
     {},
     { cause: error },
   )
@@ -224,22 +235,6 @@ export class AuthorizationController extends TypertRemoteService {
   decline(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId): void {
     const prompt = this.pending(attemptId, promptId)
     prompt.reject(new AuthorizationDeclinedError())
-  }
-
-  /**
-   * Withdraw the flow currently running for a credential key.
-   * @param key - Credential key owned by the running flow.
-   */
-  @Remote
-  cancel(key: string): void {
-    let parsed: CredentialKey
-    try {
-      parsed = parseCredentialKey(key)
-    } catch (error) {
-      throw new RemoteError('gateway/bad-request', 'invalid authorization credential key', {}, { cause: error })
-    }
-    this.requireEnabled(parsed)
-    this.provider().cancel(parsed)
   }
 
   private requireEnabled(key: CredentialKey): void {

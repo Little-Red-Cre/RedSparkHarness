@@ -10,7 +10,7 @@ The pi-ai adapter already knows how to authenticate `openai-codex` with ChatGPT 
 
 ## Decision
 
-The Web profile mounts `ctx.authorization` and selects only `llm-pi-ai/openai-codex` through the settings controller's `authorizationKeys`. The controller exposes no flows by default and rejects start/cancel requests for unselected keys. This keeps adapter registration separate from product-supported account login. The Models page renders notices and prompts beneath the selected account and preserves the login URL across progress updates. OAuth grants remain Host-only credential records owned by `llm-pi-ai`.
+The Web profile mounts `ctx.authorization` and selects only `llm-pi-ai/openai-codex` through the settings controller's `authorizationKeys`. The controller exposes no flows by default and rejects start requests for unselected keys. The initiating Remote stream exclusively owns cancellation; no credential-key cancellation operation is exposed to other browser connections. Provider failures cross the wire only as fixed safe messages and allowlisted authorization codes. This keeps adapter registration separate from product-supported account login. The Models page renders notices and prompts beneath the selected account and preserves the login URL across progress updates. OAuth grants and original provider failures remain Host-only.
 
 ```mermaid
 flowchart LR

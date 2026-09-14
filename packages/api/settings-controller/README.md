@@ -33,7 +33,7 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 
 -----
 
-`authorization.list()` joins only flows selected by `authorizationKeys` with redacted credential-record state. No account flow is exposed by default; the Web bundle selects only `llm-pi-ai/openai-codex`. Unselected keys are rejected by both `authorize` and `cancel`. `authorization.authorize()` streams notices and prompts only to the browser that started the attempt; `answer`, `decline`, and `cancel` control that live attempt. The controller never interprets OAuth tokens and no credential value travels back to the browser.
+`authorization.list()` joins only flows selected by `authorizationKeys` with redacted credential-record state. No account flow is exposed by default; the Web bundle selects only `llm-pi-ai/openai-codex`. `authorization.authorize()` streams notices and prompts only to the browser that started the attempt; closing that stream is the only browser cancellation path, so another connection cannot cancel it by credential key. `answer` and `decline` address opaque attempt and prompt ids. Provider failures cross the wire only as fixed safe messages and allowlisted authorization codes; the original cause remains Host-only. The controller never interprets OAuth tokens and no credential value travels back to the browser.
 
 <a id="configuration"></a>
 ## Configuration
@@ -41,7 +41,7 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 | Field | Default | Meaning |
 |---|---|---|
 | `nativeOpen` | platform-detected | Whether Agent preset directories can be handed to a native desktop opener |
-| `authorizationKeys` | `[]` | Credential keys whose registered account flows the browser may list, start, and cancel |
+| `authorizationKeys` | `[]` | Credential keys whose registered account flows the browser may list and start |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-api-settings-controller) is the exhaustive source for accepted fields and their JSDoc.
 

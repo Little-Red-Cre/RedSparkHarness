@@ -33,7 +33,7 @@ kind: "package-reference"
 
 -----
 
-`authorization.list()` 只将 `authorizationKeys` 选中的授权流与脱敏凭据记录状态连接起来。默认不暴露任何账号流；Web bundle 只选择 `llm-pi-ai/openai-codex`。`authorize` 和 `cancel` 均拒绝未选中的 key。`authorization.authorize()` 只向发起操作的浏览器流式发送通知与问题；`answer`、`decline` 和 `cancel` 控制该实时会话。Controller 不解释 OAuth token，也不会把凭据值返回浏览器。
+`authorization.list()` 只将 `authorizationKeys` 选中的授权流与脱敏凭据记录状态连接起来。默认不暴露任何账号流；Web bundle 只选择 `llm-pi-ai/openai-codex`。`authorization.authorize()` 只向发起操作的浏览器流式发送通知与问题；关闭该事件流是浏览器唯一的取消路径，因此其他连接不能按凭据 key 取消它。`answer` 和 `decline` 使用不透明的尝试 id 与问题 id 定位操作。提供方失败只以固定安全文案和白名单授权错误码经过 wire，原始 cause 只留在 Host。Controller 不解释 OAuth token，也不会把凭据值返回浏览器。
 
 <a id="configuration"></a>
 ## 配置
@@ -41,7 +41,7 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `nativeOpen` | 平台探测 | Agent preset 目录能否交给原生桌面打开器 |
-| `authorizationKeys` | `[]` | 浏览器可以列出、启动和取消的已注册账号流的凭据 key |
+| `authorizationKeys` | `[]` | 浏览器可以列出和启动的已注册账号流的凭据 key |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-api-settings-controller)是所有受支持字段及其 JSDoc 的完整来源。
 

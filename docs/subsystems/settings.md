@@ -163,7 +163,7 @@ type SettingsUpdateSource = 'update' | 'provider'
 
 ## Browser account authorization
 
-`AuthorizationEntryView` combines an enabled flow's identity and methods with credential metadata, never its payload. `AuthorizationFrame` carries started, notice, prompt, or settled events. Branded `AuthorizationAttemptId` and `AuthorizationPromptId` identify the live attempt and unanswered question; they are process-local, not durable Session ids. The settings controller's `authorizationKeys` selects which registered flows the browser may list, start, or cancel. Closing the stream withdraws that attempt and releases its pending questions before cleanup completes.
+`AuthorizationEntryView` combines an enabled flow's identity and methods with credential metadata, never its payload. `AuthorizationFrame` carries started, notice, prompt, or settled events. Branded `AuthorizationAttemptId` and `AuthorizationPromptId` identify the live attempt and unanswered question; they are process-local, not durable Session ids. The settings controller's `authorizationKeys` selects which registered flows the browser may list and start. Closing the initiating stream is the only browser cancellation path; it withdraws that attempt and releases its pending questions before cleanup completes. Provider failures expose only fixed safe messages and allowlisted authorization codes while retaining the original cause on the Host.
 
 ## Native document operations
 
@@ -213,12 +213,6 @@ Host owner of the generated `ctx.remote.authorization` namespace.
  * @param promptId - Opaque identifier of the pending prompt.
  */
 @Remote decline(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId): void
-
-/**
- * Withdraw the flow currently running for a credential key.
- * @param key - Credential key owned by the running flow.
- */
-@Remote cancel(key: string): void
 ```
 
 Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)
