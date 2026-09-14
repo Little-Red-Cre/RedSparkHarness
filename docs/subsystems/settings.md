@@ -161,6 +161,10 @@ Every committed change — an in-process write or an externally observed provide
 type SettingsUpdateSource = 'update' | 'provider'
 ```
 
+## Browser account authorization
+
+`AuthorizationEntryView` combines an enabled flow's identity and methods with credential metadata, never its payload. `AuthorizationFrame` carries started, notice, prompt, or settled events. Branded `AuthorizationAttemptId` and `AuthorizationPromptId` identify the live attempt and unanswered question; they are process-local, not durable Session ids. The settings controller's `authorizationKeys` selects which registered flows the browser may list and start. Closing the initiating stream is the only browser cancellation path; it withdraws that attempt and releases its pending questions before cleanup completes. Provider failures expose only fixed safe messages and allowlisted authorization codes while retaining the original cause on the Host.
+
 ## Native document operations
 
 `SettingsDocumentOpenValue` confirms that `settings/openSettingsDocument` prepared the provider-owned document and handed it to the native text editor. `AgentPresetDirectoryOpenValue` reports either a completed native handoff or the resolved user-preset directory when desktop opening is unavailable. Neither operation accepts a browser-selected Host path.
@@ -172,6 +176,46 @@ type SettingsUpdateSource = 'update' | 'provider'
 ## Cordis API
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxauthorizationcontroller--authorizationcontroller"></a>
+
+### `ctx.authorizationController` — `AuthorizationController`
+
+Host owner of the generated `ctx.remote.authorization` namespace.
+
+```ts cordis-catalog
+/**
+ * List browser-enabled flows and their stored-record state.
+ * @returns Enabled registered flows joined with redacted stored-record state.
+ */
+@Remote async list(): Promise<AuthorizationEntryView[]>
+
+/**
+ * Run one flow and stream its notices and prompts to the initiating browser.
+ * @param key - Credential key owned by the registered flow.
+ * @param method - Optional flow-owned method identifier.
+ * @param signal - Browser stream lifetime.
+ * @returns Notices, prompts, and final status for this attempt.
+ */
+@Remote({ mode: 'stream' }) async * authorize(key: string, method: string | undefined, signal: AbortSignal): AsyncIterable<AuthorizationFrame>
+
+/**
+ * Answer the prompt currently displayed for one attempt.
+ * @param attemptId - Opaque identifier returned by the stream.
+ * @param promptId - Opaque identifier of the pending prompt.
+ * @param value - User-entered answer passed to the Host flow.
+ */
+@Remote answer(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId, value: string): void
+
+/**
+ * Decline the prompt currently displayed for one attempt.
+ * @param attemptId - Opaque identifier returned by the stream.
+ * @param promptId - Opaque identifier of the pending prompt.
+ */
+@Remote decline(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId): void
+```
+
+Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)
 
 <a id="ctxsettings--settingsprovider-abstract-seam"></a>
 

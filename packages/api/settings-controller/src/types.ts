@@ -7,6 +7,10 @@
  * @module @deepseek-ai/dsh-api-settings-controller/types
  */
 
+import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { AuthorizationEntry, AuthorizationNotice, AuthorizationPromptOption } from '@deepseek-ai/dsh-authorization/types'
+import type { CredentialRecord } from '@deepseek-ai/dsh-credentials/types'
+
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     /**
@@ -37,3 +41,43 @@ export interface SettingsDocumentOpenValue {
 export type AgentPresetDirectoryOpenValue =
   | { readonly opened: true }
   | { readonly opened: false; readonly path: string }
+
+/** Browser-visible identity of one live authorization attempt. */
+export type AuthorizationAttemptId = Branded<'AuthorizationAttemptId'>
+
+/** Browser-visible identity of one prompt within an authorization attempt. */
+export type AuthorizationPromptId = Branded<'AuthorizationPromptId'>
+
+/** A registered authorization flow joined with redacted credential-record state. */
+export interface AuthorizationEntryView extends AuthorizationEntry {
+  readonly configured: boolean
+  readonly kind?: CredentialRecord['kind']
+  readonly writable: boolean
+}
+
+/** Wire-safe prompt with the Host-only cancellation signal removed. */
+export type AuthorizationPromptView =
+  | { kind: 'text' | 'secret'; message: string; placeholder?: string }
+  | { kind: 'select'; message: string; options: readonly AuthorizationPromptOption[] }
+
+/** Incremental browser conversation for one authorization attempt. */
+export type AuthorizationFrame =
+  | { type: 'started'; attemptId: AuthorizationAttemptId }
+  | { type: 'notice'; notice: AuthorizationNotice }
+  | {
+    type: 'prompt'
+    attemptId: AuthorizationAttemptId
+    promptId: AuthorizationPromptId
+    prompt: AuthorizationPromptView
+  }
+  | { type: 'settled'; status: 'authorized' | 'cancelled' }
+
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface RemoteErrorDetailsMap {
+    'authorization/rejected': { readonly authorizationCode?: string }
+    'authorization/prompt-not-found': {
+      readonly attemptId: AuthorizationAttemptId
+      readonly promptId: AuthorizationPromptId
+    }
+  }
+}

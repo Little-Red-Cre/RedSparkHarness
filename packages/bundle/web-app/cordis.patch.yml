@@ -112,8 +112,14 @@
 
     # Configuration-surface reads and writes over Typert Remote. Each method
     # reports an actionable error when its settings-domain provider is absent.
+    # Its authorization namespace streams provider-owned login conversations.
+    - id: authorization
+      name: '@deepseek-ai/dsh-authorization'
+
     - id: settings-controller
       name: '@deepseek-ai/dsh-api-settings-controller'
+      config:
+        authorizationKeys: [llm-pi-ai/openai-codex]
 
     # Workspace commands and reconnect-safe projection over Typert Remote.
     - id: workspace-controller

@@ -77,6 +77,7 @@ const harness = await vi.hoisted(async () => {
   return {
     windows, hosts, handlers, app, FakeWindow, FakeHost,
     menuPopup: vi.fn(),
+    openExternal: vi.fn(() => Promise.resolve()),
     dialog: { showErrorBox: vi.fn(), showMessageBox: vi.fn() },
     applyRelease: vi.fn(() => { preparing.resolve(); return prepared.promise }),
     assertProfileRuntime: vi.fn(),
@@ -101,6 +102,7 @@ vi.mock('electron', () => ({
   app: harness.app,
   BrowserWindow: harness.FakeWindow,
   dialog: harness.dialog,
+  shell: { openExternal: harness.openExternal },
   ipcMain: {
     handle: (channel: string, handler: (event: { senderFrame: { url: string } }) => unknown) => { harness.handlers.set(channel, handler) },
   },
@@ -160,6 +162,44 @@ afterEach(async () => {
 })
 
 describe('desktop main startup', () => {
+  it('opens account links in the system browser without creating an Electron window', async () => {
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    const window = harness.windows[0]!
+    await window.loadURL('dsh-app://app/index.html')
+    const open = window.webContents.setWindowOpenHandler.mock.calls[0]![0] as (details: { url: string }) => unknown
+    expect(open({ url: 'https://auth.openai.com/oauth/authorize?state=test' })).toEqual({ action: 'deny' })
+    expect(harness.openExternal).toHaveBeenCalledWith('https://auth.openai.com/oauth/authorize?state=test')
+    expect(harness.windows).toHaveLength(1)
+  })
+
+  it.each(['file:///C:/test.exe', 'javascript:alert(1)', 'ms-settings:defaultapps', 'invalid', 'https://user:pass@example.com'])
+  ('does not hand unsafe target %s to the system opener', async (url) => {
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    const window = harness.windows[0]!
+    await window.loadURL('dsh-app://app/index.html')
+    const open = window.webContents.setWindowOpenHandler.mock.calls[0]![0] as (details: { url: string }) => unknown
+    expect(open({ url })).toEqual({ action: 'deny' })
+    expect(harness.openExternal).not.toHaveBeenCalled()
+  })
+
+  it('rejects external opening from unowned pages and reports browser failures without URLs', async () => {
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    const window = harness.windows[0]!
+    const open = window.webContents.setWindowOpenHandler.mock.calls[0]![0] as (details: { url: string }) => unknown
+    await window.loadURL('https://untrusted.example/')
+    open({ url: 'https://auth.openai.com/' })
+    expect(harness.openExternal).not.toHaveBeenCalled()
+    await window.loadURL('dsh-app://app/index.html')
+    harness.openExternal.mockRejectedValueOnce(new Error('secret OAuth URL'))
+    open({ url: 'https://auth.openai.com/' })
+    await Promise.resolve()
+    expect(harness.dialog.showErrorBox).toHaveBeenCalledWith('Could not open the browser',
+      'Check that a default web browser is configured, then click the sign-in link again.')
+  })
+
   it('uses native Windows controls and rejects untrusted chrome requests', async () => {
     vi.stubGlobal('process', { ...process, platform: 'win32' })
     await import('../src/main.ts')

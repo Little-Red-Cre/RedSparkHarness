@@ -10,6 +10,7 @@ import {
   ipcMain,
   Menu,
   protocol,
+  shell,
   type IpcMainInvokeEvent,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
@@ -108,7 +109,20 @@ function createWindow(preload: string, show = false): BrowserWindow {
       webSecurity: true,
     },
   })
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    const source = URL.parse(window.webContents.getURL())
+    const target = URL.parse(url)
+    if (source?.protocol === `${SCHEME}:` && source.hostname === 'app'
+      && target !== null && (target.protocol === 'https:' || target.protocol === 'http:')
+      && target.username === '' && target.password === '') {
+      void shell.openExternal(target.href).catch(() => {
+        // Opener errors can contain the OAuth URL; expose only locale-owned recovery advice.
+        const messages = resolveDesktopLocale(app.getLocale()).messages
+        dialog.showErrorBox(messages.externalLinkFailedTitle, messages.externalLinkFailed)
+      })
+    }
+    return { action: 'deny' }
+  })
   window.webContents.on('will-navigate', (event, url) => {
     if (new URL(url).protocol !== `${SCHEME}:`) event.preventDefault()
     const page = emergencyPages.get(window)

@@ -55,6 +55,48 @@ async function boot(
 }
 
 describe('login flows in a real composition', () => {
+  it('activates Codex catalog models and sends the stored account grant through the Codex transport', async () => {
+    const ctx = await boot(await home(), {}, { authorization: true })
+    const access = `test.${Buffer.from(JSON.stringify({
+      'https://api.openai.com/auth': { chatgpt_account_id: 'test-account' },
+    })).toString('base64url')}.test`
+    await ctx.credentials.modifyRecord(LlmPiAi.recordKeyFor('openai-codex'), () => Promise.resolve({
+      kind: 'grant', payload: { type: 'oauth', access, refresh: 'test-refresh', expires: Date.now() + 3_600_000 },
+    }))
+    await ctx.settings.mutate(NS, [{ op: 'set', path: ['providers', 'openai-codex'], value: { transport: 'sse' } }])
+    expect(ctx.llm.listProviders().map(provider => provider.id)).toEqual(['openai-codex'])
+    const models = await ctx.llm.listModels('openai-codex')
+    expect(models.length).toBeGreaterThan(0)
+    const message = { type: 'message', id: 'msg_test', role: 'assistant', status: 'completed',
+      content: [{ type: 'output_text', text: 'hello from Codex', annotations: [] }] }
+    const events = [
+      { type: 'response.output_item.added', output_index: 0, item: { ...message, content: [] } },
+      { type: 'response.content_part.added', output_index: 0, content_index: 0,
+        part: { type: 'output_text', text: '', annotations: [] } },
+      { type: 'response.output_text.delta', output_index: 0, content_index: 0, delta: 'hello from Codex' },
+      { type: 'response.output_item.done', output_index: 0, item: message },
+      { type: 'response.completed', response: { id: 'resp_test', status: 'completed', output: [message],
+        usage: { input_tokens: 3, output_tokens: 4, total_tokens: 7 } } },
+    ]
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
+      events.map(event => `data: ${JSON.stringify(event)}\n\n`).join(''),
+      { headers: { 'content-type': 'text/event-stream' } },
+    ))
+    try {
+      const result = await assemble(ctx, { provider: 'openai-codex', model: models[0]!.id, messages: [] })
+      expect(result.finish.kind).not.toBe('error')
+      expect(result.message.content).toEqual([{ type: 'text', text: 'hello from Codex' }])
+      expect(fetch).toHaveBeenCalledOnce()
+      const [url, options] = fetch.mock.calls[0]!
+      expect(url).toBe('https://chatgpt.com/backend-api/codex/responses')
+      const headers = new Headers(options?.headers)
+      expect(headers.get('authorization')).toBe(`Bearer ${access}`)
+      expect(headers.get('chatgpt-account-id')).toBe('test-account')
+    } finally {
+      fetch.mockRestore()
+    }
+  })
+
   it('offers a sign-in for a provider no route names, once the seam is mounted', async () => {
     const ctx = await boot(await home(), {}, { authorization: true })
 
