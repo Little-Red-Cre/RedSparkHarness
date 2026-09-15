@@ -35,8 +35,12 @@ const COPY: Record<PetActivity, PetKey> = {
 }
 
 function initialMotionEnabled(): boolean {
-  const matchMedia = window.matchMedia as ((query: string) => Pick<MediaQueryList, 'matches'>) | undefined
-  return !matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  return !motionQuery()?.matches
+}
+
+function motionQuery(): Pick<MediaQueryList, 'matches' | 'addEventListener' | 'removeEventListener'> | undefined {
+  const matchMedia = window.matchMedia as ((query: string) => MediaQueryList) | undefined
+  return matchMedia?.('(prefers-reduced-motion: reduce)')
 }
 
 /** Render the selected character from the shared preference source. */
@@ -53,6 +57,14 @@ export function PetView(props: PetViewProps) {
   const [desktopError, setDesktopError] = useState(false)
   const [longRunning, setLongRunning] = useState(false)
   const previousRun = useRef({ sessionId: props.sessionId, running: session?.running ?? false })
+
+  useEffect(() => {
+    const query = motionQuery()
+    if (query === undefined) return
+    const update = (event: MediaQueryListEvent) => { setMotionEnabled(!event.matches) }
+    query.addEventListener('change', update)
+    return () => { query.removeEventListener('change', update) }
+  }, [])
 
   useEffect(() => {
     const finished = previousRun.current.sessionId === props.sessionId && previousRun.current.running

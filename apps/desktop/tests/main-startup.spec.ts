@@ -13,6 +13,7 @@ const harness = await vi.hoisted(async () => {
   const windows: FakeWindow[] = []
   const hosts: FakeHost[] = []
   const handlers = new Map<string, (event: { senderFrame: { url: string } }) => unknown>()
+  const desktopPetClose = vi.fn()
   let pluginsEnabled = false
   let preparing = deferred()
   let prepared = deferred()
@@ -75,7 +76,7 @@ const harness = await vi.hoisted(async () => {
     }),
   })
   return {
-    windows, hosts, handlers, app, FakeWindow, FakeHost,
+    windows, hosts, handlers, app, FakeWindow, FakeHost, desktopPetClose,
     menuPopup: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     dialog: { showErrorBox: vi.fn(), showMessageBox: vi.fn() },
@@ -128,6 +129,12 @@ vi.mock('../src/project-manager.ts', () => ({
   },
 }))
 vi.mock('../src/host-process.ts', () => ({ DesktopHostProcess: harness.FakeHost }))
+vi.mock('../src/pet-window.ts', () => ({
+  DesktopPetWindow: class {
+    readonly update = vi.fn()
+    readonly close = harness.desktopPetClose
+  },
+}))
 vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: vi.fn() }))
 
 function invoke(channel: string): unknown {
@@ -246,9 +253,11 @@ describe('desktop main startup', () => {
     await import('../src/main.ts')
     await harness.preparing.promise
     const window = harness.windows[0]!
+    harness.desktopPetClose.mockClear()
     window.webContents.emit('render-process-gone', {}, { reason: 'crashed' })
     await harness.errorPublished.promise
     expect(window.urls).toEqual(['dsh-app://shell/startup.html', 'dsh-app://shell/startup.html'])
+    expect(harness.desktopPetClose).toHaveBeenCalledTimes(2)
     expect(invoke(DESKTOP_IPC.backendStatus)).toMatchObject({ phase: 'error', message: 'Desktop renderer exited: crashed' })
   })
 

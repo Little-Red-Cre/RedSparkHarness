@@ -196,6 +196,7 @@ async function main(): Promise<void> {
   const showEmergencyError = async (error: unknown): Promise<void> => {
     if (quitting || emergencyDocument) return
     emergencyDocument = true
+    desktopPet.close()
     const diagnostic = desktopErrorState(error).message
     pageError = { phase: 'error', message: diagnostic }
     if (mainWindow !== undefined) await showEmergencyDocument(mainWindow, diagnostic)
@@ -205,6 +206,7 @@ async function main(): Promise<void> {
     const window = mainWindow
     if (quitting || emergencyDocument || window === undefined || window.isDestroyed()) return Promise.resolve()
     if (navigation?.window === window && navigation.url === url) return navigation.promise
+    if (new URL(url).hostname !== 'app') desktopPet.close()
     const next = { window, url, promise: Promise.resolve() }
     next.promise = window.loadURL(url).catch((error: unknown) => {
       if (quitting || window.isDestroyed() || navigation !== next) return
@@ -507,6 +509,7 @@ async function main(): Promise<void> {
     window.webContents.on('render-process-gone', (_event, details) => {
       navigation = undefined
       emergencyDocument = false
+      desktopPet.close()
       void showStartupError(new Error(`Desktop renderer exited: ${details.reason}`))
         .catch((failure: unknown) => { console.error(failure) })
     })

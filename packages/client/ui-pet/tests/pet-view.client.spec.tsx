@@ -318,12 +318,37 @@ describe('desktop pet presentation', () => {
 
   it('keeps motion opt-in when the system requests reduced motion', () => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia')
-    Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: true }) })
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+    })
     try {
       const view = render(<PetView {...viewProps(snapshot, session())} />)
       expect(view.getByRole('button', { name: 'Enable motion' })).toBeTruthy()
       fireEvent.click(view.getByRole('button', { name: 'Enable motion' }))
       expect(view.getByRole('button', { name: 'Pause motion' })).toBeTruthy()
+    } finally {
+      if (descriptor === undefined) Reflect.deleteProperty(window, 'matchMedia')
+      else Object.defineProperty(window, 'matchMedia', descriptor)
+    }
+  })
+
+  it('stops motion when the system enables reduced motion after mounting', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+    let listener: ((event: MediaQueryListEvent) => void) | undefined
+    const addEventListener = vi.fn((_type: string, callback: (event: MediaQueryListEvent) => void) => { listener = callback })
+    const removeEventListener = vi.fn()
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: () => ({ matches: false, addEventListener, removeEventListener }),
+    })
+    try {
+      const view = render(<PetView {...viewProps(snapshot, session())} />)
+      expect(view.getByRole('button', { name: 'Pause motion' })).toBeTruthy()
+      act(() => { listener?.({ matches: true } as MediaQueryListEvent) })
+      expect(view.getByRole('button', { name: 'Enable motion' })).toBeTruthy()
+      view.unmount()
+      expect(removeEventListener).toHaveBeenCalledWith('change', expect.any(Function))
     } finally {
       if (descriptor === undefined) Reflect.deleteProperty(window, 'matchMedia')
       else Object.defineProperty(window, 'matchMedia', descriptor)

@@ -97,7 +97,7 @@ describe('ui-pet client apply', () => {
     expect(settings.mutate).toHaveBeenCalledTimes(3)
     expect(settings.mutate).toHaveBeenCalledWith(expect.arrayContaining([
       expect.objectContaining({ path: ['petId'], value: 'redspark-kitsune' }),
-    ]), 0)
+    ]))
 
     await fiber.dispose()
   })

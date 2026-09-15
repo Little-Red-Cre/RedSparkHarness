@@ -6,7 +6,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import {
-  DEFAULT_PET_ID, DEFAULT_PET_VARIANT, type PetSettings,
+  DEFAULT_PET_ID, DEFAULT_PET_VARIANT, MAX_CUSTOM_PETS, type PetSettings,
 } from '../pet-settings.ts'
 
 /** Semantic states a pet presentation may visualize. */
@@ -140,7 +140,7 @@ export class PetRuntime {
     void this.host.mutate([
       { op: 'set', path: ['petId'], value: id },
       { op: 'set', path: ['variant'], value: variant },
-    ], this.host.getSnapshot().revision)
+    ])
   }
 
   /**
@@ -150,6 +150,7 @@ export class PetRuntime {
    * @returns completion of the settings write.
    */
   async importPet(name: string, atlasUrl: string): Promise<void> {
+    if (this.preferences.customPets.length >= MAX_CUSTOM_PETS) throw new Error(`A maximum of ${MAX_CUSTOM_PETS} custom pets can be imported`)
     const id = `imported-${randomUUID()}`
     const customPets = [...this.preferences.customPets, { id, name, atlasUrl }]
     if (this.host.getSnapshot().mode === 'memory') {

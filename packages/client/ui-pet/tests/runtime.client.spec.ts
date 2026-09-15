@@ -82,13 +82,30 @@ describe('PetRuntime', () => {
     runtime.selectPet('redspark-kitsune')
     expect(host.mutate).toHaveBeenLastCalledWith(expect.arrayContaining([
       expect.objectContaining({ path: ['variant'], value: 'chibi' }),
-    ]), 1)
+    ]))
     runtime.selectPet('plugin-pet')
     expect(host.mutate).toHaveBeenLastCalledWith(expect.arrayContaining([
       expect.objectContaining({ path: ['petId'], value: 'plugin-pet' }),
       expect.objectContaining({ path: ['variant'], value: 'focused' }),
-    ]), 1)
+    ]))
     expect(() => { runtime.selectPet('missing') }).toThrow('is not registered')
+  })
+
+  it('lets the settings scope serialize rapid character selections', () => {
+    const host = stubSettingsScope<PetSettings>()
+    const runtime = new PetRuntime(new Context(), host.scope)
+    runtime.register({ id: 'first', name: 'First', variants: [{ id: 'normal', atlasUrl: '/first.png' }] })
+    runtime.register({ id: 'second', name: 'Second', variants: [{ id: 'normal', atlasUrl: '/second.png' }] })
+
+    runtime.selectPet('first')
+    runtime.selectPet('second')
+
+    expect(host.mutate).toHaveBeenNthCalledWith(1, expect.arrayContaining([
+      expect.objectContaining({ path: ['petId'], value: 'first' }),
+    ]))
+    expect(host.mutate).toHaveBeenNthCalledWith(2, expect.arrayContaining([
+      expect.objectContaining({ path: ['petId'], value: 'second' }),
+    ]))
   })
 
   it('keeps remote-browser choices and imports process-local while the scope is memory-only', async () => {
@@ -113,6 +130,23 @@ describe('PetRuntime', () => {
     await runtime.removePet(imported!)
     expect(runtime.state.getSnapshot()).toMatchObject({ petId: 'redspark-kitsune', variant: 'normal', customPetIds: [] })
     await runtime.removePet('not-selected')
+  })
+
+  it('enforces the imported-character cap in a memory-only browser scope', async () => {
+    const host = stubSettingsScope<PetSettings>()
+    host.publish({
+      mode: 'memory', status: 'unavailable', writable: false,
+      value: {
+        enabled: true, desktopEnabled: false, petId: 'redspark-kitsune', variant: 'normal',
+        customPets: Array.from({ length: 20 }, (_value, index) => ({
+          id: `imported-${index}`, name: `Pet ${index}`, atlasUrl: 'data:image/png;base64,aGVsbG8=',
+        })),
+      },
+    })
+    const runtime = new PetRuntime(new Context(), host.scope)
+
+    await expect(runtime.importPet('Overflow', 'data:image/png;base64,aGVsbG8=')).rejects.toThrow('maximum of 20')
+    expect(host.mutate).not.toHaveBeenCalled()
   })
 
   it('adopts Host acceptances, notifies subscribers, and persists imported selections', async () => {
