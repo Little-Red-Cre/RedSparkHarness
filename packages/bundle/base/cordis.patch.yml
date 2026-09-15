@@ -280,6 +280,13 @@
       name: '@deepseek-ai/dsh-skill-badge'
       disabled: true
 
+    # The hidden built-in Archify Skill performs only bounded direct-user-text
+    # routing here. It reads its upstream body only after an explicit diagram
+    # delivery request, so ordinary sessions carry neither a catalog entry nor
+    # the Archify instructions.
+    - id: archify
+      name: '@deepseek-ai/dsh-archify'
+
     - id: tool-skill
       name: '@deepseek-ai/dsh-tool-skill'
 
