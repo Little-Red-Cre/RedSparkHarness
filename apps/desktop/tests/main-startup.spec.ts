@@ -13,6 +13,8 @@ const harness = await vi.hoisted(async () => {
   const windows: FakeWindow[] = []
   const hosts: FakeHost[] = []
   const handlers = new Map<string, (event: { senderFrame: { url: string } }) => unknown>()
+  const desktopPetClose = vi.fn()
+  const desktopPetUpdate = vi.fn()
   let pluginsEnabled = false
   let preparing = deferred()
   let prepared = deferred()
@@ -23,10 +25,12 @@ const harness = await vi.hoisted(async () => {
   class FakeWindow extends EventEmitter {
     destroyed = false
     readonly urls: string[] = []
+    readonly mainFrame = { url: 'dsh-app://shell/startup.html' }
     readonly webContents = Object.assign(new EventEmitter(), {
       setWindowOpenHandler: vi.fn(),
       openDevTools: vi.fn(),
       getURL: () => this.urls.at(-1) ?? '',
+      mainFrame: this.mainFrame,
       send: vi.fn((channel: string, state: { phase?: string }) => {
         if (channel === 'dsh-desktop:backend-state' && state.phase === 'error') errorPublished.resolve()
       }),
@@ -75,7 +79,7 @@ const harness = await vi.hoisted(async () => {
     }),
   })
   return {
-    windows, hosts, handlers, app, FakeWindow, FakeHost,
+    windows, hosts, handlers, app, FakeWindow, FakeHost, desktopPetClose, desktopPetUpdate,
     menuPopup: vi.fn(),
     openExternal: vi.fn(() => Promise.resolve()),
     dialog: { showErrorBox: vi.fn(), showMessageBox: vi.fn() },
@@ -128,12 +132,27 @@ vi.mock('../src/project-manager.ts', () => ({
   },
 }))
 vi.mock('../src/host-process.ts', () => ({ DesktopHostProcess: harness.FakeHost }))
+vi.mock('../src/pet-window.ts', () => ({
+  DesktopPetWindow: class {
+    readonly update = harness.desktopPetUpdate
+    readonly close = harness.desktopPetClose
+  },
+}))
 vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: vi.fn() }))
 
 function invoke(channel: string): unknown {
   const handler = harness.handlers.get(channel)
   if (handler === undefined) throw new Error(`missing handler ${channel}`)
   return handler({ senderFrame: { url: 'dsh-app://shell/startup.html' } })
+}
+
+function invokeApplicationPet(window: { webContents: { mainFrame: { url: string } } }, presentation: unknown): unknown {
+  const handler = harness.handlers.get(DESKTOP_IPC.petUpdate)
+  if (handler === undefined) throw new Error('missing desktop pet handler')
+  return (handler as unknown as (event: unknown, value: unknown) => unknown)({
+    sender: window.webContents,
+    senderFrame: window.webContents.mainFrame,
+  }, presentation)
 }
 
 beforeEach(() => {
@@ -246,10 +265,34 @@ describe('desktop main startup', () => {
     await import('../src/main.ts')
     await harness.preparing.promise
     const window = harness.windows[0]!
+    harness.desktopPetClose.mockClear()
     window.webContents.emit('render-process-gone', {}, { reason: 'crashed' })
     await harness.errorPublished.promise
     expect(window.urls).toEqual(['dsh-app://shell/startup.html', 'dsh-app://shell/startup.html'])
+    expect(harness.desktopPetClose).toHaveBeenCalledTimes(2)
     expect(invoke(DESKTOP_IPC.backendStatus)).toMatchObject({ phase: 'error', message: 'Desktop renderer exited: crashed' })
+  })
+
+  it('rejects old app-frame pet updates while the main window navigates away', async () => {
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    harness.prepared.resolve()
+    await harness.hostStarted.promise
+    harness.hosts[0]!.ready.resolve()
+    await harness.navigated.promise
+    await Promise.resolve()
+    const window = harness.windows[0]!
+    window.webContents.mainFrame.url = 'dsh-app://app/index.html'
+    const presentation = { visible: true, atlasUrl: '/brand/kitsune-sprites.png', frame: 0, label: 'Idle' }
+    invokeApplicationPet(window, presentation)
+    expect(harness.desktopPetUpdate).toHaveBeenCalledOnce()
+    harness.desktopPetUpdate.mockClear()
+
+    window.webContents.emit('render-process-gone', {}, { reason: 'crashed' })
+
+    expect(() => invokeApplicationPet(window, presentation)).toThrow('Desktop pet updates require the primary application frame')
+    expect(harness.desktopPetUpdate).not.toHaveBeenCalled()
+    await harness.errorPublished.promise
   })
 
   it.each(['plugins', 'reset'])('runs %s recovery from a document with a broken preload', async (action) => {

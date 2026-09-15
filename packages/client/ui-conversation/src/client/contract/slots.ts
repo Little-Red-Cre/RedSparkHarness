@@ -162,6 +162,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
     /** Agent-preset control staged for a New Session. */
     'conversation.hero.agentPreset': { kind: 'single'; scope: 'root'; owner: HeroAgentPresetOwnerProps }
+    /** Optional state-aware companion, placed by Conversation and implemented by another plugin. */
+    'conversation.pet': { kind: 'single'; scope: 'session-maybe'; owner: ConversationPetOwnerProps }
     /** Full-width entries above the composer card. */
     'conversation.input.dock': { kind: 'list'; scope: 'session'; owner: InputZone }
     /** Floating entries rendered inside the resident composer card. */
@@ -363,6 +365,12 @@ export interface HeroBrandMarkOwnerProps {
   className?: string | undefined
 }
 
+/** Presentation placement requested from the optional companion plugin. */
+export interface ConversationPetOwnerProps {
+  /** Hero is centered above the headline; floating occupies active Conversation chrome. */
+  placement: 'hero' | 'floating'
+}
+
 /** Full props of the resident optional-Session Conversation shell. */
 export type ConversationSlotProps =
   PropsRuntime<'main.conversation'>
@@ -373,6 +381,7 @@ export type ConversationSlotProps =
     | 'conversation.hero.brand.mark'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
+    | 'conversation.pet'
   >
   & InjectFace<ConversationInjected>
   & PropsLocale<'conversation'>

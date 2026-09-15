@@ -1,3 +1,6 @@
+- button "Say hello to Kitsune":
+  - img "Kitsune, RedSpark’s fox companion"
+- status: Kitsune is here, waiting for your next spark.
 - banner:
   - navigation "Session hierarchy":
     - button "Use the read tool twice" [disabled]

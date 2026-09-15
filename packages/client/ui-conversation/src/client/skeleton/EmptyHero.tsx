@@ -1,7 +1,7 @@
 // The composer remains in ConversationRoot so switching out of the blank-draft
 // phase does not remount its textarea.
 
-import { useState, type ReactNode, type RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import {
   FishLogo, IconChevronDownOutline14, IconFolderClose16, IconFolderOpen16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -76,27 +76,10 @@ export interface HeroShellProps {
  * @returns the centered hero element tree.
  */
 export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
-  const [petHappy, setPetHappy] = useState(false)
-  const [petPaused, setPetPaused] = useState(false)
-  const [petMotionEnabled, setPetMotionEnabled] = useState(false)
   return (
     <div className={css.root}>
       <div className={css.stack}>
-        <div className={css.petStage} data-paused={petPaused} data-happy={petHappy} data-motion-enabled={petMotionEnabled}>
-          <div className={css.orbit} aria-hidden="true" />
-          <span className={css.spark} aria-hidden="true">✦</span>
-          <span className={css.sparkSmall} aria-hidden="true">✧</span>
-          <button type="button" className={css.character} aria-label={t('hero.petInteract')}
-            aria-pressed={petHappy} onClick={() => { setPetHappy(value => !value) }}>
-            <span className={css.sprite} role="img" aria-label={t('hero.character')} />
-          </button>
-          <span className={css.petSpeech} role="status">{t(petHappy ? 'hero.petHappy' : 'hero.petHello')}</span>
-          <button type="button" className={css.petPause} aria-pressed={petPaused}
-            onClick={() => {
-              if (!petMotionEnabled) setPetMotionEnabled(true)
-              else setPetPaused(value => !value)
-            }}>{t(!petMotionEnabled ? 'hero.petEnable' : petPaused ? 'hero.petResume' : 'hero.petPause')}</button>
-        </div>
+        {renderSlot('conversation.pet', { placement: 'hero' })}
         <p className={css.eyebrow}>{t('hero.eyebrow')}</p>
         <div className={css.headline}>
           {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}

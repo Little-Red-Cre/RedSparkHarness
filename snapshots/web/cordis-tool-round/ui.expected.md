@@ -1,3 +1,6 @@
+- button "Say hello to Kitsune":
+  - img "Kitsune, RedSpark’s fox companion"
+- status: Done! Let’s make imagination happen again today!
 - banner:
   - navigation "Session hierarchy":
     - button "Use only Cordis tools. First" [disabled]

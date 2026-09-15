@@ -1,3 +1,6 @@
+- button "Say hello to Kitsune":
+  - img "Kitsune, RedSpark’s fox companion"
+- status: Something went wrong. Kitsune is checking it.
 - banner:
   - navigation "Session hierarchy":
     - button "Reply with a one-sentence description" [disabled]

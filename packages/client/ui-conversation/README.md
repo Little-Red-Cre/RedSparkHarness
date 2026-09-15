@@ -132,4 +132,4 @@ None.
 
 </details>
 
-**Runtime invariant:** No companion is published. Conversation Definitions, target builders, and Views are already validated by their owning registries and the Slot ledger.
+**Runtime invariant:** No invariant companion is published because Conversation exposes only the placement-neutral `conversation.pet` declaration and owner placement; an occupant owns every character, asset, preference, and state rule. Conversation Definitions, target builders, and Views are already validated by their owning registries and the Slot ledger.

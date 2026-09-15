@@ -10,10 +10,22 @@ vi.mock('../src/title-bar.ts', () => ({ installTitleBar: vi.fn() }))
 
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); vi.resetModules() })
 
-it.each(['dsh-app://app/index.html', 'https://shell/startup.html'])('exposes only the carrier marker to %s', async (url) => {
+it.each(['https://shell/startup.html'])('exposes only the carrier marker to %s', async (url) => {
   vi.stubGlobal('location', new URL(url))
   await import('../src/preload-app.ts')
   expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledWith('dshDesktop', { protocolVersion: 1 })
+})
+
+it('exposes only presentation updates to the application document', async () => {
+  vi.stubGlobal('location', new URL('dsh-app://app/index.html'))
+  await import('../src/preload-app.ts')
+  const api = electron.contextBridge.exposeInMainWorld.mock.calls[0]?.[1] as {
+    protocolVersion: number
+    pet: { update(value: unknown): Promise<void> }
+  }
+  await api.pet.update({ visible: false })
+  expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith(DESKTOP_IPC.petUpdate, { visible: false })
+  expect(Object.keys(api)).toEqual(['protocolVersion', 'pet'])
 })
 
 it('provides startup controls and a removable state subscription to shell documents', async () => {

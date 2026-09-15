@@ -48,3 +48,12 @@
   - button "排队发送":
     - text: 排队发送
     - img
+  - region "个性化":
+    - heading "个性化" [level=3]
+    - text: 桌宠 让角色跟随智能体运行状态，并在会话中悬浮显示
+    - switch "显示桌宠" [checked]
+    - text: 角色
+    - button "赤绯" [pressed]
+    - text: 形态
+    - button "正常版" [pressed]
+    - button "Q版"

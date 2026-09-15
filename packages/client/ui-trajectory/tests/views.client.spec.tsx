@@ -269,6 +269,7 @@ async function bench(snapshot = historySnapshot(NODES)) {
   const { events, views } = uiConversation
   const targetSources: ConversationTargetSources = {
     chat: createSnapshotStore<ChatSnapshot | undefined>(undefined),
+    'pet-activity': createSnapshotStore<ConversationViewSnapshotMap['pet-activity'] | undefined>(undefined),
     trajectory: trajectoryStore,
   }
   const binding: ConversationBinding = {

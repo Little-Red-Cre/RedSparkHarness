@@ -48,3 +48,12 @@
   - button "Queue":
     - text: Queue
     - img
+  - region "Personalization":
+    - heading "Personalization" [level=3]
+    - text: Desktop pet Show a companion that follows agent state and floats in conversations
+    - switch "Show desktop pet" [checked]
+    - text: Character
+    - button "Kitsune" [pressed]
+    - text: Style
+    - button "Normal" [pressed]
+    - button "Chibi"
