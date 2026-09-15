@@ -325,35 +325,26 @@ function mount(
 }
 
 describe('Hero chrome', () => {
-  it('lets the companion greet and pause without sending a model request', () => {
-    const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={() => null} />)
-    const pet = view.getByRole('button', { name: 'Say hello to Kitsune' })
-    expect(pet.getAttribute('aria-pressed')).toBe('false')
-    fireEvent.click(pet)
-    expect(pet.getAttribute('aria-pressed')).toBe('true')
-    expect(view.getByRole('status').textContent).toBe(en['hero.petHappy'])
-    fireEvent.click(view.getByRole('button', { name: 'Enable motion' }))
-    fireEvent.click(view.getByRole('button', { name: 'Pause motion' }))
-    expect(view.getByRole('button', { name: 'Wake Kitsune' }).getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(view.getByRole('button', { name: 'Wake Kitsune' }))
-    expect(view.getByRole('button', { name: 'Pause motion' }).getAttribute('aria-pressed')).toBe('false')
-    fireEvent.click(pet)
-    expect(view.getByRole('status').textContent).toBe(en['hero.petHello'])
+  it('delegates the companion to the optional Conversation pet slot', () => {
+    const renderSlot = vi.fn<HeroShellProps['renderSlot']>(key => key === 'conversation.pet' ? <div>Pet occupant</div> : null)
+    const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
+    expect(view.getByText('Pet occupant')).toBeTruthy()
+    expect(renderSlot).toHaveBeenCalledWith('conversation.pet', { placement: 'hero' })
   })
   it('renders the English preview badge through the hero locale seat', () => {
     const renderSlot = vi.fn<HeroShellProps['renderSlot']>(() => null)
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
     expect(view.getByText('Let imagination ignite')).toBeTruthy()
     expect(view.getByText('Preview')).toBeTruthy()
-    expect(renderSlot).toHaveBeenCalledOnce()
-    expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')
-    const brandMarkOwner = renderSlot.mock.calls[0]?.[1]
+    const brandCall = renderSlot.mock.calls.find(call => call[0] === 'conversation.hero.brand.mark')
+    expect(brandCall).toBeDefined()
+    const brandMarkOwner = brandCall?.[1]
     if (brandMarkOwner === undefined || !('size' in brandMarkOwner) || !('className' in brandMarkOwner)) {
       throw new Error('hero brand-mark owner must provide size and className')
     }
     expect(brandMarkOwner.size).toBe(34)
     expect(brandMarkOwner.className).toBeTypeOf('string')
-    expect(renderSlot.mock.calls[0]?.[2]?.fallback).toBeTruthy()
+    expect(brandCall?.[2]?.fallback).toBeTruthy()
   })
 })
 
@@ -451,6 +442,7 @@ describe('ConversationRoot resident composer', () => {
 
   it('active phase: fixed header outside the scrollport; sticky composer seat inside it', () => {
     const b = mount(sessionSnapshotOf())
+    expect(b.slotCalls).toContain('conversation.pet')
     const host = b.view.container.querySelector('[data-conversation-scroll]')
     const seat = b.view.container.querySelector('[data-composer-seat]')
     const header = b.view.container.querySelector('header')

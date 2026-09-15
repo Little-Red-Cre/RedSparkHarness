@@ -195,6 +195,8 @@
       "@deepseek-ai/dsh-client-ui-chat/client": ["./packages/client/ui-chat/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-conversation": ["./packages/client/ui-conversation/src"],
       "@deepseek-ai/dsh-client-ui-conversation/client": ["./packages/client/ui-conversation/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-pet": ["./packages/client/ui-pet/src"],
+      "@deepseek-ai/dsh-client-ui-pet/client": ["./packages/client/ui-pet/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-tool": ["./packages/client/ui-tool/src"],
       "@deepseek-ai/dsh-tool-present/types": ["./packages/fs/tool-present/src/types.ts"],
       "@deepseek-ai/dsh-client-ui-deliverables": ["./packages/client/ui-deliverables/src"],

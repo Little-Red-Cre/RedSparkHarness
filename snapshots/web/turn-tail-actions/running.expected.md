@@ -1,3 +1,6 @@
+- button "Say hello to Kitsune":
+  - img "Kitsune, RedSpark’s fox companion"
+- status: Kitsune is thinking…
 - banner:
   - navigation "Session hierarchy":
     - button "Begin your reply with the" [disabled]

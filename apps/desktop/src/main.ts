@@ -23,6 +23,8 @@ import { claimDesktopSingleInstance } from './single-instance.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 import { desktopErrorState } from './startup-error.ts'
 import { startupFailureDocument } from './startup-document.ts'
+import { DesktopPetWindow } from './pet-window.ts'
+import { parsePetPresentation } from './pet-presentation.ts'
 
 const SCHEME = 'dsh-app'
 let focusPrimaryWindow = (): void => {}
@@ -185,6 +187,7 @@ async function main(): Promise<void> {
   const messages = locale.messages
   const appPreload = fileURLToPath(new URL('./preload-app.cjs', import.meta.url))
   const managementPreload = fileURLToPath(new URL('./preload.cjs', import.meta.url))
+  const desktopPet = new DesktopPetWindow(fileURLToPath(new URL('./preload-pet.cjs', import.meta.url)))
   const startupUrl = `${SCHEME}://shell/startup.html`
   const applicationUrl = `${SCHEME}://app/index.html`
   let navigation: { window: BrowserWindow; url: string; promise: Promise<void> } | undefined
@@ -335,6 +338,13 @@ async function main(): Promise<void> {
   ipcMain.handle(DESKTOP_IPC.localeGet, (event) => {
     assertDesktopSender(event, ['shell'])
     return locale
+  })
+  ipcMain.handle(DESKTOP_IPC.petUpdate, (event, value: unknown) => {
+    assertDesktopSender(event, ['app'])
+    if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error('Desktop pet updates require the primary application frame')
+    }
+    desktopPet.update(parsePetPresentation(value))
   })
   ipcMain.handle(DESKTOP_IPC.windowMenu, (event) => {
     assertDesktopSender(event, ['app', 'shell'])
@@ -488,7 +498,9 @@ async function main(): Promise<void> {
   const createMainWindow = (): BrowserWindow => {
     const window = createWindow(appPreload, true)
     mainWindow = window
-    window.on('closed', () => { if (mainWindow === window) mainWindow = undefined })
+    window.on('closed', () => {
+      if (mainWindow === window) { mainWindow = undefined; desktopPet.close() }
+    })
     window.webContents.on('preload-error', (_event, _path, error) => {
       void showEmergencyError(error).catch((failure: unknown) => { console.error(failure) })
     })
@@ -523,6 +535,7 @@ async function main(): Promise<void> {
     if (shellInstallerOwnsQuit || quitting) return
     event.preventDefault()
     quitting = true
+    desktopPet.close()
     void backend.close().catch((error: unknown) => { console.error(error) }).finally(() => { app.quit() })
   })
 

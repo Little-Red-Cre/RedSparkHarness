@@ -20,7 +20,13 @@
 - button "Settings":
   - img
   - text: Settings
-- text: Into the Unknown Preview
+- button "Say hello to Kitsune":
+  - img "Kitsune, RedSpark’s fox companion"
+- status: Kitsune is here, waiting for your next spark.
+- button "Enable motion"
+- paragraph: REDSPARK HARNESS / SPH
+- text: Let imagination ignite Preview
+- paragraph: A small spark. A brighter world. Create your next possibility with Kitsune.
 - button "Choose workspace":
   - img
   - text: workspace

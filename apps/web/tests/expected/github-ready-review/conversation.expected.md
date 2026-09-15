@@ -9,6 +9,9 @@
 
 ---
 
+- button "Say hello to Kitsune":
+  - img "Kitsune, RedSpark’s fox companion"
+- status: Kitsune is here, waiting for your next spark.
 - banner:
   - navigation "Session hierarchy":
     - button "Review deepseek-harness/deepseek-harness#314" [disabled]

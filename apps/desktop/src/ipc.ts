@@ -6,6 +6,8 @@ import type { DesktopBackendState } from './backend-controller.ts'
 
 /** IPC channel names kept private to the desktop application bundle. */
 export const DESKTOP_IPC = {
+  petUpdate: 'dsh-desktop:pet-update',
+  petState: 'dsh-desktop:pet-state',
   windowMenu: 'dsh-desktop:window-menu',
   windowColors: 'dsh-desktop:window-colors',
   localeGet: 'dsh-desktop:locale-get',

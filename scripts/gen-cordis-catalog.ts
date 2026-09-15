@@ -176,6 +176,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   timer: 'client-side dynamic-package timer service — packages/extensions/cordis-client-runner/README.md owns the API',
   slots: 'client-side interface-typed browser service — packages/client/ui-renderer/README.md owns the API',
   theme: 'client-side interface-typed browser service — packages/client/ui-theme/README.md owns the API',
+  pet: 'client-side desktop-pet registry and preference service — packages/client/ui-pet/README.md owns the API',
   workspaces: 'client-side interface-typed browser service — packages/api/workspace-controller/README.md owns the API',
   resources: 'client-side resource model (protocol providers, pins, live sources) — packages/client/resources/README.md owns the API',
   sidebarRight: 'client-side right-Sidebar navigation face — packages/client/ui-sidebar-right/README.md owns the API',
@@ -237,6 +238,7 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
   'slash/input-insert-text': 'client-face slash-input protocol — packages/client/ui-input-trigger/README.md owns the API',
   'slots/changed': 'client-face slot invalidation signal — packages/client/ui-renderer/README.md owns the API',
   'theme/change': 'client-face theme switch signal — packages/client/ui-theme/README.md owns the API',
+  'pet/change': 'client-face desktop-pet registry and preference signal — packages/client/ui-pet/README.md owns the API',
 }
 
 /**

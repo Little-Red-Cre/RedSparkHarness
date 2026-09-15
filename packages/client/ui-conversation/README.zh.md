@@ -132,4 +132,4 @@ selector 必须是 owner currency 的纯函数。非 null 返回值作为 `match
 
 </details>
 
-**运行时不变式：** 不发布伴生入口。Conversation Definition、target builder 与 View 已由其所属注册表和 Slot ledger 校验。
+**运行时不变式：** 不发布 invariant companion，因为 Conversation 只公开与具体呈现无关的 `conversation.pet` 声明及位置参数；填充方持有全部角色、素材、偏好与状态规则。Conversation Definition、target builder 与 View 已由其所属注册表和 Slot ledger 校验。

@@ -22,7 +22,7 @@ export const zh = {
   'chat.loadError': '历史加载失败：{message}（{code}）',
   'chat.loadOlder': '加载更早',
   'chat.toBottom': '回到底部',
-  'chat.deepDiving': '深度求索中...',
+  'chat.deepDiving': '赤绯思考中...',
   'chat.turnNavigation.label': '轮次导航',
   'chat.turnNavigation.jump': '跳转到第 {turn} 轮',
   'chat.turnNavigation.jumpLoad': '加载并跳转到第 {turn} 轮',
