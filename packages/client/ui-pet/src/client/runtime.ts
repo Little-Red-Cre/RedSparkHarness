@@ -117,8 +117,8 @@ export class PetRuntime {
    * @param value - Value selected for that field.
    */
   setPreference<K extends keyof PetSettings>(field: K, value: PetSettings[K]): void {
+    this.replacePreferences({ ...this.preferences, [field]: value })
     if (this.host.getSnapshot().mode === 'memory') {
-      this.replacePreferences({ ...this.preferences, [field]: value })
       return
     }
     void this.host.set(field, value)
@@ -133,8 +133,8 @@ export class PetRuntime {
     if (pet === undefined) throw new Error(`pet "${id}" is not registered`)
     const variant = pet.variants.some(candidate => candidate.id === this.preferences.variant)
       ? this.preferences.variant : (pet.variants[0] as PetVariantDefinition).id
+    this.replacePreferences({ ...this.preferences, petId: id, variant })
     if (this.host.getSnapshot().mode === 'memory') {
-      this.replacePreferences({ ...this.preferences, petId: id, variant })
       return
     }
     void this.host.mutate([

@@ -69,6 +69,26 @@ describe('PetRuntime', () => {
     expect(host.set).toHaveBeenCalledWith('variant', 'chibi')
   })
 
+  it('retains an optimistic variant while a following character selection is queued', () => {
+    const host = stubSettingsScope<PetSettings>()
+    host.publish({
+      status: 'ready', writable: true, revision: 1,
+      value: { enabled: true, desktopEnabled: false, petId: 'first', variant: 'normal', customPets: [] },
+    })
+    const runtime = new PetRuntime(new Context(), host.scope)
+    runtime.register({ id: 'first', name: 'First', variants: [{ id: 'normal', atlasUrl: '/first.png' }, { id: 'chibi', atlasUrl: '/first-chibi.png' }] })
+    runtime.register({ id: 'second', name: 'Second', variants: [{ id: 'normal', atlasUrl: '/second.png' }, { id: 'chibi', atlasUrl: '/second-chibi.png' }] })
+
+    runtime.setPreference('variant', 'chibi')
+    runtime.selectPet('second')
+
+    expect(runtime.state.getSnapshot()).toMatchObject({ petId: 'second', variant: 'chibi' })
+    expect(host.mutate).toHaveBeenLastCalledWith(expect.arrayContaining([
+      expect.objectContaining({ path: ['petId'], value: 'second' }),
+      expect.objectContaining({ path: ['variant'], value: 'chibi' }),
+    ]))
+  })
+
   it('selects a registered character with a supported variant', () => {
     const host = stubSettingsScope<PetSettings>()
     host.publish({

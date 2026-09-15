@@ -192,10 +192,12 @@ async function main(): Promise<void> {
   const applicationUrl = `${SCHEME}://app/index.html`
   let navigation: { window: BrowserWindow; url: string; promise: Promise<void> } | undefined
   let emergencyDocument = false
+  let petUpdatesAllowed = false
 
   const showEmergencyError = async (error: unknown): Promise<void> => {
     if (quitting || emergencyDocument) return
     emergencyDocument = true
+    petUpdatesAllowed = false
     desktopPet.close()
     const diagnostic = desktopErrorState(error).message
     pageError = { phase: 'error', message: diagnostic }
@@ -206,9 +208,13 @@ async function main(): Promise<void> {
     const window = mainWindow
     if (quitting || emergencyDocument || window === undefined || window.isDestroyed()) return Promise.resolve()
     if (navigation?.window === window && navigation.url === url) return navigation.promise
-    if (new URL(url).hostname !== 'app') desktopPet.close()
+    petUpdatesAllowed = false
+    const applicationDocument = new URL(url).hostname === 'app'
+    if (!applicationDocument) desktopPet.close()
     const next = { window, url, promise: Promise.resolve() }
-    next.promise = window.loadURL(url).catch((error: unknown) => {
+    next.promise = window.loadURL(url).then(() => {
+      if (navigation === next) petUpdatesAllowed = applicationDocument
+    }).catch((error: unknown) => {
       if (quitting || window.isDestroyed() || navigation !== next) return
       navigation = undefined
       throw error
@@ -343,7 +349,7 @@ async function main(): Promise<void> {
   })
   ipcMain.handle(DESKTOP_IPC.petUpdate, (event, value: unknown) => {
     assertDesktopSender(event, ['app'])
-    if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) {
+    if (!petUpdatesAllowed || event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) {
       throw new Error('Desktop pet updates require the primary application frame')
     }
     desktopPet.update(parsePetPresentation(value))
@@ -501,7 +507,7 @@ async function main(): Promise<void> {
     const window = createWindow(appPreload, true)
     mainWindow = window
     window.on('closed', () => {
-      if (mainWindow === window) { mainWindow = undefined; desktopPet.close() }
+      if (mainWindow === window) { mainWindow = undefined; petUpdatesAllowed = false; desktopPet.close() }
     })
     window.webContents.on('preload-error', (_event, _path, error) => {
       void showEmergencyError(error).catch((failure: unknown) => { console.error(failure) })
@@ -509,6 +515,7 @@ async function main(): Promise<void> {
     window.webContents.on('render-process-gone', (_event, details) => {
       navigation = undefined
       emergencyDocument = false
+      petUpdatesAllowed = false
       desktopPet.close()
       void showStartupError(new Error(`Desktop renderer exited: ${details.reason}`))
         .catch((failure: unknown) => { console.error(failure) })
