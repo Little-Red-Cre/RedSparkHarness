@@ -56,7 +56,7 @@
 [data-state='error'] .sprite { filter: grayscale(0.25) drop-shadow(0 8px 10px color-mix(in srgb, var(--dsw-alias-state-error-primary) 40%, transparent)); }
 [data-state='sleeping'] .sprite { background-position: 33.333333% 0; animation: pet-breathe 5s ease-in-out infinite; }
 
-.orbit { position: absolute; width: 220px; height: 48px; bottom: 0; left: 50%; transform: translateX(-50%) rotate(-8deg); border: 0.5px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 40%, transparent); border-radius: 50%; background: radial-gradient(ellipse, color-mix(in srgb, var(--sph-crimson) 12%, transparent), transparent 70%); pointer-events: none; }
+.orbit { position: absolute; width: 220px; height: 48px; bottom: 0; left: 50%; transform: translateX(-50%) rotate(-8deg); border: 0.5px solid color-mix(in srgb, var(--dsw-alias-brand-primary) 40%, transparent); border-radius: 50%; corner-shape: round; background: radial-gradient(ellipse, color-mix(in srgb, var(--sph-crimson) 12%, transparent), transparent 70%); pointer-events: none; }
 [data-placement='floating'] .orbit { width: 140px; height: 30px; }
 .spark, .sparkSmall { position: absolute; left: 18%; top: 30%; color: var(--dsw-alias-brand-text); font-size: 24px; animation: pet-spark 3s ease-in-out infinite; pointer-events: none; }
 .sparkSmall { left: auto; right: 18%; top: 58%; font-size: 17px; animation-delay: -1.5s; }

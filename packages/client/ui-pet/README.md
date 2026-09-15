@@ -25,12 +25,12 @@ This plugin turns the RedSpark mascot into an optional Agent-state display. It o
 
 Add both Host and Client halves to a Web composition. Users can enable the pet and select its character and variant in General settings. The same stored `petId` and `variant` drive the centered welcome character and the in-app floating Conversation character, so changing either selection updates both placements.
 
-Third-party Client plugins can call `ctx.pet.register()` with a stable id, a display name, and one or more four-frame horizontal sprite atlases. Independent capability plugins can call `ctx.pet.setActivity(sessionId, source, activity)` and retain the returned disposer while a more specific state such as `coding`, `working`, or `sleeping` applies.
+Third-party Client plugins can call `ctx.pet.register()` with a stable id, a display name, and one or more four-frame horizontal sprite atlases. An Electron-compatible atlas is either a bounded PNG data URL or an application-served absolute PNG path such as `/plugins/provider/atlas.png`; it cannot be a remote URL, query-bearing URL, or path containing traversal. Independent capability plugins can call `ctx.pet.setActivity(sessionId, source, activity)` and retain the returned disposer while a more specific state such as `coding`, `working`, or `sleeping` applies.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-`PetRuntime` owns registry entries, preferences, and temporary activity reports. Session-standard state supplies the default mapping: idle, running/thinking, pending interaction/waiting, error, and a short completion reaction. The browser presentation reads one immutable snapshot for both placements. An optional Electron carrier receives only a validated atlas frame and localized status, then owns the transparent draggable always-on-top window. The Host half registers the `ui-pet` settings schema; accepted changes use the shared settings scope.
+`PetRuntime` owns registry entries, preferences, and temporary activity reports. Session-standard state supplies the default mapping: idle, running/thinking, pending interaction/waiting, error, and a short completion reaction. The browser presentation reads one immutable snapshot for both placements. A loopback browser persists preferences through the shared Host settings scope; a remote browser uses an explicitly process-local copy so its controls remain responsive without claiming durable storage. An optional Electron carrier receives only a validated atlas frame and localized status, then owns the transparent draggable always-on-top window. The Host half registers the `ui-pet` settings schema; accepted changes use the shared settings scope.
 
 <a id="further-exploration"></a>
 ## Further Exploration
@@ -53,7 +53,7 @@ None; the package does not assemble provider input.
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Desktop carrier is optional** — browsers show the welcome and Conversation placements only. Electron shows the selected frame in a separate transparent draggable always-on-top window when the user enables Desktop display.
-- **Built-in assets are deployment-owned** — the Web app serves the two RedSpark atlases under `/brand/`; a distributable third-party provider supplies its own reachable atlas URLs.
+- **Built-in assets are deployment-owned** — the Web app serves the two RedSpark atlases under `/brand/`; a distributable third-party provider serves a PNG under an application-local absolute path such as `/plugins/provider/atlas.png`, or supplies a bounded PNG data URL.
 - **Four-frame presentation** — semantic states share the available idle, blink, wave, and happy frames until a future animation format provides dedicated state clips.
 
 <a id="dev-note"></a>

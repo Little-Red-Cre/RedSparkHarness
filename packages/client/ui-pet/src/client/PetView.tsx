@@ -89,7 +89,10 @@ export function PetView(props: PetViewProps) {
       frame: activity === 'complete' ? 3 : activity === 'sleeping' ? 1 : activity === 'idle' ? 0 : 2,
       label,
     }).then(() => { if (active) setDesktopError(false) }, () => { if (active) setDesktopError(true) })
-    return () => { active = false }
+    return () => {
+      active = false
+      void bridge.update({ visible: false, atlasUrl: '/brand/kitsune-sprites.png', frame: 0, label: '' }).catch(() => undefined)
+    }
   }, [snapshot.enabled, snapshot.desktopEnabled, variant?.atlasUrl, activity, label])
 
   if (!snapshot.enabled || variant === undefined) return null

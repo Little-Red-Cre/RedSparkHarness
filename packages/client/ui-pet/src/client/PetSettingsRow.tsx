@@ -61,7 +61,7 @@ export function PetSettingsRow(props: PetSettingsRowProps) {
           if (file === undefined) return
           setImporting(true)
           setImportError(false)
-          const name = file.name.replace(/\.png$/i, '').trim().slice(0, 64) || props.t('settings.customName')
+          const name = file.name.trim().replace(/\.png$/i, '').trim().slice(0, 64) || props.t('settings.customName')
           void importPetPng(file).then(atlasUrl => props.importPet(name, atlasUrl))
             .catch(() => { setImportError(true) }).finally(() => { setImporting(false) })
         }} />

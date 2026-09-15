@@ -3,9 +3,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import {
-  DEFAULT_PET_ID, DEFAULT_PET_VARIANT, type ImportedPet, type PetSettings,
+  DEFAULT_PET_ID, DEFAULT_PET_VARIANT, type PetSettings,
 } from '../pet-settings.ts'
 
 /** Semantic states a pet presentation may visualize. */
@@ -41,6 +42,18 @@ export interface PetSnapshot {
   revision: number
 }
 
+const DEFAULT_SETTINGS: PetSettings = {
+  enabled: true,
+  desktopEnabled: false,
+  petId: DEFAULT_PET_ID,
+  variant: DEFAULT_PET_VARIANT,
+  customPets: [],
+}
+
+function copySettings(settings: PetSettings): PetSettings {
+  return { ...settings, customPets: settings.customPets.map(pet => ({ ...pet })) }
+}
+
 /** Registry and preference service used by independently loaded pet providers. */
 export class PetRuntime {
   private readonly ctx: Context
@@ -49,7 +62,7 @@ export class PetRuntime {
   private readonly activities = new Map<SessionId, Map<string, { activity: PetActivity }>>()
   private listeners = new Set<() => void>()
   private snapshot: PetSnapshot
-  private customPets: ImportedPet[] = []
+  private preferences = copySettings(DEFAULT_SETTINGS)
 
   /** Observable used by injected Slot hooks. */
   readonly state: ObservableSnapshot<PetSnapshot> = {
@@ -65,10 +78,7 @@ export class PetRuntime {
     this.ctx = ctx
     this.host = host
     this.snapshot = Object.freeze({
-      enabled: true,
-      desktopEnabled: false,
-      petId: DEFAULT_PET_ID,
-      variant: DEFAULT_PET_VARIANT,
+      ...this.preferences,
       pets: Object.freeze([]),
       customPetIds: Object.freeze([]),
       activities: new Map(),
@@ -101,10 +111,16 @@ export class PetRuntime {
 
   /**
    * Select visibility, character, or variant through the durable settings scope.
+   * Remote browser scopes retain the selection in this browser process because
+   * they intentionally cannot write Host preferences.
    * @param field - Preference field to write.
    * @param value - Value selected for that field.
    */
   setPreference<K extends keyof PetSettings>(field: K, value: PetSettings[K]): void {
+    if (this.host.getSnapshot().mode === 'memory') {
+      this.replacePreferences({ ...this.preferences, [field]: value })
+      return
+    }
     void this.host.set(field, value)
   }
 
@@ -116,8 +132,13 @@ export class PetRuntime {
    */
   async importPet(name: string, atlasUrl: string): Promise<void> {
     const id = `imported-${randomUUID()}`
+    const customPets = [...this.preferences.customPets, { id, name, atlasUrl }]
+    if (this.host.getSnapshot().mode === 'memory') {
+      this.replacePreferences({ ...this.preferences, customPets, petId: id, variant: 'normal' })
+      return
+    }
     await this.host.mutate([
-      { op: 'set', path: ['customPets'], value: [...this.customPets.map(pet => ({ ...pet })), { id, name, atlasUrl }] },
+      { op: 'set', path: ['customPets'], value: customPets as unknown as JsonValue },
       { op: 'set', path: ['petId'], value: id },
       { op: 'set', path: ['variant'], value: 'normal' },
     ], this.host.getSnapshot().revision)
@@ -130,9 +151,19 @@ export class PetRuntime {
    * @returns completion of the atomic settings write.
    */
   async removePet(id: string): Promise<void> {
+    const customPets = this.preferences.customPets.filter(pet => pet.id !== id)
+    const selected = this.preferences.petId === id
+    if (this.host.getSnapshot().mode === 'memory') {
+      this.replacePreferences({
+        ...this.preferences,
+        customPets,
+        ...(selected ? { petId: DEFAULT_PET_ID, variant: DEFAULT_PET_VARIANT } : {}),
+      })
+      return
+    }
     await this.host.mutate([
-      { op: 'set', path: ['customPets'], value: this.customPets.filter(pet => pet.id !== id).map(pet => ({ ...pet })) },
-      ...(this.snapshot.petId === id ? [
+      { op: 'set', path: ['customPets'], value: customPets as unknown as JsonValue },
+      ...(selected ? [
         { op: 'set' as const, path: ['petId'], value: DEFAULT_PET_ID },
         { op: 'set' as const, path: ['variant'], value: DEFAULT_PET_VARIANT },
       ] : []),
@@ -165,18 +196,21 @@ export class PetRuntime {
   private adopt(): void {
     const settings = this.host.getSnapshot().value
     if (settings === undefined) return
-    this.customPets = settings.customPets
-    this.snapshot = Object.freeze({ ...this.snapshot, ...settings, revision: this.snapshot.revision + 1 })
+    this.replacePreferences(settings)
+  }
+
+  private replacePreferences(settings: PetSettings): void {
+    this.preferences = copySettings(settings)
     this.publish()
   }
 
   private publish(): void {
     this.snapshot = Object.freeze({
-      ...this.snapshot,
-      pets: Object.freeze([...this.definitions.values(), ...this.customPets.map(pet => ({
+      ...this.preferences,
+      pets: Object.freeze([...this.definitions.values(), ...this.preferences.customPets.map(pet => ({
         id: pet.id, name: pet.name, variants: [{ id: 'normal', atlasUrl: pet.atlasUrl }],
       }))]),
-      customPetIds: Object.freeze(this.customPets.map(pet => pet.id)),
+      customPetIds: Object.freeze(this.preferences.customPets.map(pet => pet.id)),
       activities: new Map([...this.activities].flatMap(([sessionId, reports]) => {
         const report = [...reports.values()].at(-1)
         return report === undefined ? [] : [[sessionId, report.activity] as const]
