@@ -259,6 +259,28 @@ export interface Config {
 
 Source: [`packages/api/workspace-files/src/index.ts:69`](../packages/api/workspace-files/src/index.ts)
 
+<a id="deepseek-aidsh-archify"></a>
+
+## `@deepseek-ai/dsh-archify`
+
+Requires: `agents` · `skills` · `shellEnv`
+
+```ts config-catalog
+/** Automatic Archify routing controls. */
+export interface Config {
+  /** Whether matching direct user requests load Archify automatically; manual `/archify` remains available. */
+  autoInvoke?: boolean
+  /** Maximum direct-user characters scanned for one proposed step. */
+  maxUserTextChars?: number
+  /** Case-insensitive action phrases; one must occur before automatic loading. */
+  requestPhrases?: string[]
+  /** Case-insensitive diagram-domain phrases; one must occur before automatic loading. */
+  diagramPhrases?: string[]
+}
+```
+
+Source: [`packages/skill/archify/src/index.ts:70`](../packages/skill/archify/src/index.ts)
+
 <a id="deepseek-aidsh-attachment-local"></a>
 
 ## `@deepseek-ai/dsh-attachment-local`

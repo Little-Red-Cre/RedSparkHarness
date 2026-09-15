@@ -231,6 +231,7 @@
     { "path": "./packages/core/tools" },
     { "path": "./packages/core/agent-tool-presentation" },
     { "path": "./packages/skill/skill" },
+    { "path": "./packages/skill/archify" },
     { "path": "./packages/skill/skill-badge" },
     { "path": "./packages/skill/skill-filesystem" },
     { "path": "./packages/skill/tool-skill" },

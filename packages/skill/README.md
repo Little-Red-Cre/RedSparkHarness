@@ -26,6 +26,7 @@ The skill family lets agents and users discover and load reusable task instructi
 |---|---|---|
 | [`skill/`](skill/README.md) | Registry that merges skill catalogs from any provider and resolves the winning skill for a name | `ctx.skills` |
 | [`skill-filesystem/`](skill-filesystem/README.md) | Discovers skills from project, custom, and user directories and watches them for changes | registers on `ctx.skills` |
+| [`archify/`](archify/README.md) | Routes explicit diagram-delivery requests to the hidden pinned Archify Skill | registers on `ctx.skills` and `agent/pre-step` |
 | [`skill-badge/`](skill-badge/README.md) | Bundles the official "powered by dsh" badge skill, disabled by default | registers on `ctx.skills` |
 | [`tool-skill/`](tool-skill/README.md) | Publishes the session skill catalog and the model-facing `skill` loader tool | registers on `ctx.tools` |
 
