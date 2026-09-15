@@ -75,7 +75,7 @@ export function apply(ctx: Context, config: Config): void {
     hooks: { pet: pet.state },
     setEnabled: (enabled) => { pet.setPreference('enabled', enabled) },
     setDesktopEnabled: (enabled) => { pet.setPreference('desktopEnabled', enabled) },
-    setPet: (id) => { pet.setPreference('petId', id) },
+    setPet: (id) => { pet.selectPet(id) },
     setVariant: (id) => { pet.setPreference('variant', id) },
     importPet: (name, atlasUrl) => pet.importPet(name, atlasUrl),
     removePet: id => pet.removePet(id),

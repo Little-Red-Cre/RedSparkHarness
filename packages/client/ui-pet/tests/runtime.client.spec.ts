@@ -69,6 +69,28 @@ describe('PetRuntime', () => {
     expect(host.set).toHaveBeenCalledWith('variant', 'chibi')
   })
 
+  it('selects a registered character with a supported variant', () => {
+    const host = stubSettingsScope<PetSettings>()
+    host.publish({
+      status: 'ready', writable: true, revision: 1,
+      value: { enabled: true, desktopEnabled: false, petId: 'redspark-kitsune', variant: 'chibi', customPets: [] },
+    })
+    const runtime = new PetRuntime(new Context(), host.scope)
+    runtime.register({ id: 'redspark-kitsune', name: 'Kitsune', variants: [{ id: 'normal', atlasUrl: '/normal.png' }, { id: 'chibi', atlasUrl: '/chibi.png' }] })
+    runtime.register({ id: 'plugin-pet', name: 'Plugin pet', variants: [{ id: 'focused', atlasUrl: '/focused.png' }] })
+
+    runtime.selectPet('redspark-kitsune')
+    expect(host.mutate).toHaveBeenLastCalledWith(expect.arrayContaining([
+      expect.objectContaining({ path: ['variant'], value: 'chibi' }),
+    ]), 1)
+    runtime.selectPet('plugin-pet')
+    expect(host.mutate).toHaveBeenLastCalledWith(expect.arrayContaining([
+      expect.objectContaining({ path: ['petId'], value: 'plugin-pet' }),
+      expect.objectContaining({ path: ['variant'], value: 'focused' }),
+    ]), 1)
+    expect(() => { runtime.selectPet('missing') }).toThrow('is not registered')
+  })
+
   it('keeps remote-browser choices and imports process-local while the scope is memory-only', async () => {
     const host = stubSettingsScope<PetSettings>()
     host.publish({ mode: 'memory', status: 'unavailable', value: undefined, writable: false })
@@ -77,6 +99,9 @@ describe('PetRuntime', () => {
 
     runtime.setPreference('enabled', false)
     runtime.setPreference('variant', 'chibi')
+    runtime.register({ id: 'plugin-pet', name: 'Plugin pet', variants: [{ id: 'focused', atlasUrl: '/focused.png' }] })
+    runtime.selectPet('plugin-pet')
+    expect(runtime.state.getSnapshot()).toMatchObject({ petId: 'plugin-pet', variant: 'focused' })
     await runtime.importPet('Remote pet', 'data:image/png;base64,aGVsbG8=')
 
     const imported = runtime.state.getSnapshot().customPetIds[0]

@@ -125,6 +125,25 @@ export class PetRuntime {
   }
 
   /**
+   * Select a registered character and a variant it actually provides.
+   * @param id - Registered character selected by the user.
+   */
+  selectPet(id: string): void {
+    const pet = this.snapshot.pets.find(candidate => candidate.id === id)
+    if (pet === undefined) throw new Error(`pet "${id}" is not registered`)
+    const variant = pet.variants.some(candidate => candidate.id === this.preferences.variant)
+      ? this.preferences.variant : (pet.variants[0] as PetVariantDefinition).id
+    if (this.host.getSnapshot().mode === 'memory') {
+      this.replacePreferences({ ...this.preferences, petId: id, variant })
+      return
+    }
+    void this.host.mutate([
+      { op: 'set', path: ['petId'], value: id },
+      { op: 'set', path: ['variant'], value: variant },
+    ], this.host.getSnapshot().revision)
+  }
+
+  /**
    * Persist and select a user-imported character in one revision-checked write.
    * @param name - User-provided character name.
    * @param atlasUrl - PNG data produced by the importer.

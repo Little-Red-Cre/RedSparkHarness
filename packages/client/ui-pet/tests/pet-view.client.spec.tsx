@@ -79,6 +79,18 @@ describe('desktop pet presentation', () => {
     })
   })
 
+  it('updates native status without hiding the desktop carrier between activities', () => {
+    const update = vi.fn(() => Promise.resolve())
+    Object.defineProperty(window, 'dshDesktop', { configurable: true, value: { pet: { update } } })
+    const view = render(<PetView {...viewProps({ ...snapshot, desktopEnabled: true }, session())} />)
+    update.mockClear()
+
+    view.rerender(<PetView {...viewProps({ ...snapshot, desktopEnabled: true, activities: new Map([[SID, 'thinking']]) }, session())} />)
+
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ visible: true, frame: 2 }))
+  })
+
   it('reports a carrier failure without leaving its native window visible', async () => {
     const update = vi.fn(() => Promise.reject(new Error('carrier unavailable')))
     Object.defineProperty(window, 'dshDesktop', { configurable: true, value: { pet: { update } } })
@@ -207,6 +219,24 @@ describe('desktop pet presentation', () => {
     expect(setVariant).toHaveBeenCalledWith('chibi')
   })
 
+  it('marks the effective fallback variant and distinguishes third-party variant ids', () => {
+    const thirdParty: PetSnapshot = {
+      ...snapshot,
+      petId: 'plugin-pet',
+      variant: 'chibi',
+      pets: [{ id: 'plugin-pet', name: 'Plugin pet', variants: [
+        { id: 'focused', atlasUrl: '/focused.png' }, { id: 'sleeping', atlasUrl: '/sleeping.png' },
+      ] }],
+    }
+    const props = {
+      usePet: bindSnapshotSelector(createSnapshotStore(thirdParty)),
+      setEnabled: vi.fn(), setPet: vi.fn(), setVariant: vi.fn(), t: makeTranslate(en),
+    } as unknown as PetSettingsRowProps
+    const view = render(<PetSettingsRow {...props} />)
+    expect(view.getByRole('button', { name: 'focused' }).getAttribute('aria-pressed')).toBe('true')
+    expect(view.getByRole('button', { name: 'sleeping' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
   it('updates every personalization control and removes the selected import', async () => {
     const setEnabled = vi.fn()
     const setDesktopEnabled = vi.fn()
@@ -277,12 +307,27 @@ describe('desktop pet presentation', () => {
     expect(view.queryByText('Character')).toBeNull()
   })
 
-  it('enables, pauses, and resumes motion from the companion control', () => {
+  it('starts with motion enabled, then pauses and resumes it from the companion control', () => {
     const view = render(<PetView {...viewProps(snapshot, session())} />)
-    fireEvent.click(view.getByRole('button', { name: 'Enable motion' }))
     expect(view.getByRole('button', { name: 'Pause motion' })).toBeTruthy()
     fireEvent.click(view.getByRole('button', { name: 'Pause motion' }))
     expect(view.getByRole('button', { name: 'Wake Kitsune' })).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: 'Wake Kitsune' }))
+    expect(view.getByRole('button', { name: 'Pause motion' })).toBeTruthy()
+  })
+
+  it('keeps motion opt-in when the system requests reduced motion', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: true }) })
+    try {
+      const view = render(<PetView {...viewProps(snapshot, session())} />)
+      expect(view.getByRole('button', { name: 'Enable motion' })).toBeTruthy()
+      fireEvent.click(view.getByRole('button', { name: 'Enable motion' }))
+      expect(view.getByRole('button', { name: 'Pause motion' })).toBeTruthy()
+    } finally {
+      if (descriptor === undefined) Reflect.deleteProperty(window, 'matchMedia')
+      else Object.defineProperty(window, 'matchMedia', descriptor)
+    }
   })
 
   it('promotes sustained active work to the focused presentation', () => {

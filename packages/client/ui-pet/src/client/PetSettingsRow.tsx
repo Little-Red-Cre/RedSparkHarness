@@ -27,6 +27,7 @@ export function PetSettingsRow(props: PetSettingsRowProps) {
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState(false)
   const selected = state.pets.find(pet => pet.id === state.petId) ?? state.pets[0]
+  const selectedVariant = selected?.variants.find(variant => variant.id === state.variant) ?? selected?.variants[0]
   return (
     <section className={css.group} aria-labelledby="pet-personalization-title">
       <h3 id="pet-personalization-title" className={css.groupTitle}>{props.t('settings.group')}</h3>
@@ -44,8 +45,9 @@ export function PetSettingsRow(props: PetSettingsRowProps) {
             onClick={() => { props.setPet(pet.id) }}>{pet.id === 'redspark-kitsune' ? props.t('character.redspark-kitsune') : pet.name}</button>)}
         </div></div>
         <div className={css.field}><span>{props.t('settings.variant')}</span><div className={css.choices}>
-          {selected.variants.map(variant => <button key={variant.id} type="button" aria-pressed={variant.id === state.variant}
-            onClick={() => { props.setVariant(variant.id) }}>{props.t(variant.id === 'chibi' ? 'settings.chibi' : 'settings.normal')}</button>)}
+          {selected.variants.map(variant => <button key={variant.id} type="button" aria-pressed={variant.id === selectedVariant?.id}
+            onClick={() => { props.setVariant(variant.id) }}>{variant.id === 'normal' ? props.t('settings.normal')
+              : variant.id === 'chibi' ? props.t('settings.chibi') : variant.id}</button>)}
         </div></div>
         {state.customPetIds.includes(selected.id) ? <button type="button" disabled={importing} onClick={() => {
           setImporting(true)

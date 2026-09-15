@@ -93,9 +93,11 @@ describe('ui-pet client apply', () => {
     await settingsFace.removePet('missing')
     expect(settings.set).toHaveBeenCalledWith('enabled', false)
     expect(settings.set).toHaveBeenCalledWith('desktopEnabled', true)
-    expect(settings.set).toHaveBeenCalledWith('petId', 'redspark-kitsune')
     expect(settings.set).toHaveBeenCalledWith('variant', 'chibi')
-    expect(settings.mutate).toHaveBeenCalledTimes(2)
+    expect(settings.mutate).toHaveBeenCalledTimes(3)
+    expect(settings.mutate).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({ path: ['petId'], value: 'redspark-kitsune' }),
+    ]), 0)
 
     await fiber.dispose()
   })

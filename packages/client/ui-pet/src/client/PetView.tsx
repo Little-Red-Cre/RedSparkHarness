@@ -34,6 +34,11 @@ const COPY: Record<PetActivity, PetKey> = {
   planning: 'speech.planning', compacting: 'speech.compacting', focused: 'speech.focused',
 }
 
+function initialMotionEnabled(): boolean {
+  const matchMedia = window.matchMedia as ((query: string) => Pick<MediaQueryList, 'matches'>) | undefined
+  return !matchMedia?.('(prefers-reduced-motion: reduce)').matches
+}
+
 /** Render the selected character from the shared preference source. */
 export function PetView(props: PetViewProps) {
   const snapshot = props.usePet(value => value)
@@ -43,7 +48,7 @@ export function PetView(props: PetViewProps) {
     props.sessionId === undefined ? false : values.has(props.sessionId))
   const [happy, setHappy] = useState(false)
   const [paused, setPaused] = useState(false)
-  const [motionEnabled, setMotionEnabled] = useState(false)
+  const [motionEnabled, setMotionEnabled] = useState(initialMotionEnabled)
   const [completed, setCompleted] = useState(false)
   const [desktopError, setDesktopError] = useState(false)
   const [longRunning, setLongRunning] = useState(false)
@@ -89,11 +94,16 @@ export function PetView(props: PetViewProps) {
       frame: activity === 'complete' ? 3 : activity === 'sleeping' ? 1 : activity === 'idle' ? 0 : 2,
       label,
     }).then(() => { if (active) setDesktopError(false) }, () => { if (active) setDesktopError(true) })
+    return () => { active = false }
+  }, [snapshot.enabled, snapshot.desktopEnabled, variant?.atlasUrl, activity, label])
+
+  useEffect(() => {
+    const bridge = desktopBridge()
+    if (bridge === undefined) return
     return () => {
-      active = false
       void bridge.update({ visible: false, atlasUrl: '/brand/kitsune-sprites.png', frame: 0, label: '' }).catch(() => undefined)
     }
-  }, [snapshot.enabled, snapshot.desktopEnabled, variant?.atlasUrl, activity, label])
+  }, [])
 
   if (!snapshot.enabled || variant === undefined) return null
 

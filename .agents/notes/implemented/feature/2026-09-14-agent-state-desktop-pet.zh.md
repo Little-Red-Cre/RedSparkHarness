@@ -10,7 +10,7 @@ RedSpark 吉祥物原本是由 Conversation 持有的欢迎页装饰。它无法
 
 ## 决策
 
-创建 `dsh-client-ui-pet`，由它独占桌宠注册项、偏好、语义活动、文案和呈现。Conversation 声明一个 Session 可选的 `conversation.pet` slot，并请求 `hero` 或 `floating` 位置。内置 RedSpark 注册项提供正常版与 Q 版四帧图集。loopback 浏览器把同一份选择持久化到两个位置；远程浏览器只在自己的进程内保留选择。Session 状态派生待机、思考、等待、错误与完成；其他插件可以通过 `ctx.pet` 报告 Coding、工具工作或睡眠状态，功能包之间无需运行时导入。Electron 载体接收无路径穿越或查询参数的应用内绝对 PNG 路径，或受限的嵌入 PNG 帧；即使已移除 provider 在隐藏更新中留下过期图集，载体也会隐藏。
+创建 `dsh-client-ui-pet`，由它独占桌宠注册项、偏好、语义活动、文案和呈现。Conversation 声明一个 Session 可选的 `conversation.pet` slot，并请求 `hero` 或 `floating` 位置。内置 RedSpark 注册项提供正常版与 Q 版四帧图集。loopback 浏览器把同一份选择持久化到两个位置；远程浏览器只在自己的进程内保留选择。选择角色时始终记录该角色实际提供的形态，设置界面也会区分第三方形态 id。Session 状态派生待机、思考、等待、错误与完成；其他插件可以通过 `ctx.pet` 报告 Coding、工具工作或睡眠状态，功能包之间无需运行时导入。Electron 载体接收无路径穿越或查询参数的应用内绝对 PNG 路径，或受限的嵌入 PNG 帧；状态更新原地刷新载体，只有浏览器呈现卸载时才隐藏。
 
 本决策只取代 2026-09-13 RedSpark 品牌笔记中“角色图片仅限空欢迎页”的备选结论。该笔记对产品身份、归属说明与服务商命名仍然有效。
 
