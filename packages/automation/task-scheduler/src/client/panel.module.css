@@ -30,7 +30,11 @@
 @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .header { align-items: flex-start; } .form { padding: 14px; } }
 .reminderDialog { width: min(680px, calc(100vw - 48px)); max-height: calc(100vh - 48px); }
 .reminderContent { overflow-y: auto; min-height: 0; }
-.reminderEntry { position: relative; display: flex; flex: none; align-items: center; justify-content: center; gap: 8px; min-height: 38px; margin: 0 2px 8px; border: 1px solid var(--dsw-alias-border-l3); border-radius: 12px; padding: 8px 16px; background: var(--dsw-alias-button-elevated-fill); color: var(--dsw-alias-label-primary); cursor: pointer; font: inherit; font-size: 14px; font-weight: 500; }
+.reminderContent, .panel .form {
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+.reminderEntry { position: relative; display: flex; flex: none; align-items: center; justify-content: center; gap: 8px; min-height: 38px; margin: 0 2px 8px; border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px; padding: 8px 16px; background: var(--dsw-alias-button-elevated-fill); color: var(--dsw-alias-label-primary); cursor: pointer; font: inherit; font-size: 14px; font-weight: 500; }
 .reminderEntry svg { flex: none; color: #bd1740; }
 .reminderEntry span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .reminderEntry[data-wide=false] { width: 36px; height: 36px; min-height: 36px; align-self: flex-start; margin: 0 0 8px; padding: 0; border-color: transparent; background: transparent; }

@@ -46,6 +46,10 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         />
       </button>
     </div>
+    <div
+      data-slot="sidebar.header.action"
+      style="display: contents;"
+    />
     <button
       aria-label="New session"
       class="newSession"
@@ -171,6 +175,10 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         />
       </button>
     </div>
+    <div
+      data-slot="sidebar.header.action"
+      style="display: contents;"
+    />
     <button
       aria-label="New session"
       class="newSession"
@@ -301,6 +309,10 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         />
       </button>
     </div>
+    <div
+      data-slot="sidebar.header.action"
+      style="display: contents;"
+    />
     <button
       aria-label="新建会话"
       class="newSession"
