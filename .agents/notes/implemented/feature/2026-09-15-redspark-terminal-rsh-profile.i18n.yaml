@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-15-redspark-terminal-rsh-profile.md
-2026-09-15-redspark-terminal-rsh-profile.md: e04972538a419ce22492619543f1c7558bdd8d94
-2026-09-15-redspark-terminal-rsh-profile.zh.md: 76b9e693607e7751bd42cd840ecdc65f86f289cb
+2026-09-15-redspark-terminal-rsh-profile.md: 4ffff7c7a6858e6c4d294c10c9169dd5e90a5fbb
+2026-09-15-redspark-terminal-rsh-profile.zh.md: 6f2a52565bc9e0f18e1042c03e2d9d742f6f46c9

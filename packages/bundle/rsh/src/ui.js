@@ -810,6 +810,7 @@ export function App({
   const [input, setInput] = useState('');
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [selector, setSelector] = useState(null);
+  const [approvals, setApprovals] = useState([]);
   const [activeModel, setActiveModel] = useState(model);
   const [activeReasoning, setActiveReasoning] = useState('provider default');
   const [activeMode, setActiveMode] = useState('Default mode');
@@ -823,6 +824,7 @@ export function App({
   const usageRef = useRef(null);
   const hintTimer = useRef(undefined);
   const exiting = useRef(false);
+  const selecting = useRef(false);
   const lastUserText = useRef('');
   const toolStarts = useRef(new Map());
   const runningTools = useRef(new Map()); // callId → { name, args } while the row is live
@@ -894,11 +896,21 @@ export function App({
   // composer during generation: Enter queues it, while Esc replaces active
   // work with that draft immediately.
   useInput((keyInput, key) => {
+    if (selecting.current) {
+      if (key.ctrl && keyInput === 'c') {
+        handleExit();
+      }
+      return;
+    }
     if (key.ctrl && keyInput === 'c') {
       if (busy && typeof onInterrupt === 'function') {
         cancelActive();
       } else {
         handleExit();
+      }
+    } else if (approvals.length > 0) {
+      if (keyInput === 'y' || keyInput === 'n') {
+        approvals[0].settle(keyInput === 'y' ? 'allowed-once' : 'rejected');
       }
     } else if (key.escape && busy && typeof onInterrupt === 'function') {
       const draft = input.trim();
@@ -913,7 +925,8 @@ export function App({
     } else if (paletteOpen && key.downArrow) {
       setPaletteIndex(index => Math.min(palette.length - 1, index + 1));
     } else if (paletteOpen && key.return) {
-      const selected = palette[Math.min(paletteIndex, palette.length - 1)];
+      const selected = palette.find(command => `/${command.name}` === input.toLowerCase())
+        ?? palette[Math.min(paletteIndex, palette.length - 1)];
       if (selected !== undefined) {
         setInput('');
         setPaletteIndex(0);
@@ -930,7 +943,8 @@ export function App({
       setSelector(state => ({ ...state, index: Math.min(state.options.length - 1, state.index + 1) }));
     } else if (selector !== null && key.return) {
       const selected = selector.options[selector.index];
-      if (selected !== undefined) {
+      if (selected !== undefined && !selecting.current) {
+        selecting.current = true;
         void selector.select(selected).then(value => {
           setSelector(null);
           if (selector.title === 'model' || selector.title === 'reasoning') {
@@ -948,7 +962,7 @@ export function App({
           } else {
             setHint(null);
           }
-        }, error => flashHint(String(error)));
+        }, error => flashHint(String(error))).finally(() => { selecting.current = false; });
       }
     } else if (paletteOpen && key.backspace) {
       setInput(value => value.slice(0, -1));
@@ -981,11 +995,21 @@ export function App({
       const data = event.data && typeof event.data === 'object' ? event.data : {};
       const replay = event.rshReplay === true;
       switch (event.type) {
+        case 'rsh/approval':
+          setApprovals(previous => [...previous, data]);
+          break;
+        case 'rsh/approval-done':
+          setApprovals(previous => previous.filter(request => request.id !== data.id));
+          break;
         case 'user/message': {
           if (!replay) {
+            setItems(previous => previous.map(item => item.messageId === data.id ? { ...item, queued: false } : item));
             break;
           }
           const message = data.message && typeof data.message === 'object' ? data.message : data;
+          if (message.source?.kind !== 'user') {
+            break;
+          }
           const content = Array.isArray(message.content) ? message.content : [];
           pushItem({ kind: 'user', text: blocksText(content, 'text') });
           break;
@@ -1008,6 +1032,8 @@ export function App({
           break;
         case 'turn/end': {
           setBusy(false);
+          setStream({ reasoning: '', text: '', tool: null });
+          toolStarts.current.clear();
           turnStart.current = undefined;
           clearHint();
           const reason = data.reason && typeof data.reason === 'object' ? data.reason : {};
@@ -1049,7 +1075,7 @@ export function App({
           const text = parts.join(' · ');
           setItems(prev => {
             const divider = prev.length === 0 ? [] : [{ kind: 'divider' }];
-            return [...prev, ...divider, { kind: 'status', text, error: isError }];
+            return [...prev, ...divider, { kind: 'status', text, error: isError }].slice(-MAX_ITEMS);
           });
           break;
         }
@@ -1072,6 +1098,9 @@ export function App({
           }
           break;
         }
+        case 'assistant/attempt':
+          setStream({ reasoning: '', text: '', tool: null });
+          break;
         case 'assistant/message': {
           const message = data.message && typeof data.message === 'object' ? data.message : {};
           const content = Array.isArray(message.content) ? message.content : [];
@@ -1182,7 +1211,10 @@ export function App({
     for (const event of initialEvents) {
       handleEvent({ ...event, rshReplay: true });
     }
-    return () => onEvent(null);
+    return () => {
+      clearTimeout(hintTimer.current);
+      onEvent(null);
+    };
   }, [onEvent, handleEvent, initialEvents]);
 
   const send = useCallback(
@@ -1202,12 +1234,11 @@ export function App({
         setBusy(true);
       }
       lastUserText.current = value;
-      pushItem({ kind: 'user', text: value, queued: busy });
+      const message = createUserMessage({ content: [{ type: 'text', text: value }], source: { kind: 'user' } });
+      pushItem({ kind: 'user', text: value, queued: busy, messageId: message.id });
       try {
         // Fire-and-forget: session events drive the UI, not this promise.
-        agent.followup(
-          createUserMessage({ content: [{ type: 'text', text: value }], source: { kind: 'user' } }),
-        );
+        agent.followup(message);
       } catch (error) {
         setBusy(false);
         pushItem({
@@ -1282,6 +1313,15 @@ export function App({
         } else {
           send(lastUserText.current);
         }
+        return;
+      }
+      if (text.startsWith('/')) {
+        setInput('');
+        void controls.executeCommand(text).then(result => {
+          if (result.text) {
+            pushItem({ kind: 'status', text: result.text, error: result.kind === 'error' });
+          }
+        }, error => flashHint(String(error)));
         return;
       }
       if (busy) {
@@ -1444,7 +1484,7 @@ export function App({
       value: input,
       onChange: setInput,
       placeholder: 'Ask anything',
-      focus: !paletteOpen && selector === null,
+      focus: !paletteOpen && selector === null && approvals.length === 0,
     }),
   );
 
@@ -1508,6 +1548,7 @@ export function App({
     { flexDirection: 'column', height: '100%' },
     el(Box, { flexGrow: 1, flexDirection: 'column', overflow: 'hidden' }, transcript),
     statusRow,
+    approvals.length === 0 ? null : el(Text, { color: 'yellow' }, `Allow ${approvals[0].toolName}? ${approvals[0].reason ?? ''} [y] once / [n] reject`),
     scrollHint,
     selectorView,
     paletteView,

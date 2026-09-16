@@ -14,12 +14,6 @@ import { installModelSelection } from '@deepseek-ai/dsh-agent';
 import { SessionId } from '@deepseek-ai/dsh-session';
 import { App, ResumePicker } from './ui.js';
 
-/** Stable Cordis plugin name (bundle row id: tui-runner). */
-export const name = 'tui-runner';
-
-/** Core services required before the interactive session can start. */
-export const inject = ['agentDefaultModel', 'agentPresets', 'agents', 'commands', 'llm', 'permissionPresets', 'sessions'];
-
 /**
  * Parse RSH-owned resume forms from the launcher-provided inner argv.
  * @param {readonly string[]|undefined} args - arguments after `--profile rsh`.
@@ -49,15 +43,17 @@ export function parseResumeArgs(args = []) {
  * stream frames are then forwarded to it. Events are dropped until the App
  * mounts.
  */
-let uiHandler = undefined;
-function forward(eventOrHandler) {
-  if (typeof eventOrHandler === 'function' || eventOrHandler == null) {
-    uiHandler = typeof eventOrHandler === 'function' ? eventOrHandler : undefined;
-    return;
-  }
-  if (typeof uiHandler === 'function') {
-    uiHandler(eventOrHandler);
-  }
+function createEventBridge() {
+  let uiHandler;
+  return function forward(eventOrHandler) {
+    if (typeof eventOrHandler === 'function' || eventOrHandler == null) {
+      uiHandler = typeof eventOrHandler === 'function' ? eventOrHandler : undefined;
+      return;
+    }
+    if (typeof uiHandler === 'function') {
+      uiHandler(eventOrHandler);
+    }
+  };
 }
 
 /**
@@ -93,6 +89,20 @@ export function apply(ctx) {
 
 /** Create the agent and run the chat until the user quits. */
 async function run(ctx, exit) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error('rsh requires an interactive terminal');
+  }
+  const forward = createEventBridge();
+  let app;
+  let runtime;
+  let disposed = false;
+  let flushTimer;
+  ctx.effect(() => () => {
+    disposed = true;
+    clearTimeout(flushTimer);
+    forward(null);
+    app?.unmount();
+  });
   // Probe the terminal background BEFORE Ink mounts: Ink's key parser would
   // otherwise read the OSC 11 response as keystrokes and type garbage.
   const themeBg = await probeTerminalBg();
@@ -106,18 +116,19 @@ async function run(ctx, exit) {
   const defaultModel = ctx.get('agentDefaultModel');
   const sessions = ctx.get('sessions');
   // Early process shutdown can dispose the tree while settlement is pending.
-  if (agents === undefined || agentPresets === undefined || defaultModel === undefined || sessions === undefined) {
+  if (disposed || agents === undefined || agentPresets === undefined || defaultModel === undefined || sessions === undefined) {
     return;
   }
 
   /** Create one isolated interactive session under its selected preset. */
   const createSession = async presetId => {
+    presetId ??= agentPresets.defaultId;
     const selection = defaultModel.currentSelection();
     const selectionRef = { current: selection, assembled: undefined };
     let preset;
     const handle = await agents.create({
       sessionId: SessionId(`session-${randomUUID()}`),
-      meta: { cwd: process.cwd(), ...(presetId === undefined ? {} : { agentPreset: presetId }) },
+      meta: { cwd: process.cwd(), agentPreset: presetId },
       agentOptions: { provider: selection.provider, model: selection.model },
       setup: async agentCtx => {
         installModelSelection(agentCtx, selectionRef);
@@ -152,9 +163,7 @@ async function run(ctx, exit) {
     }
     const selection = defaultModel.currentSelection();
     const selectionRef = { current: selection, assembled: undefined };
-    const rememberedPreset = typeof storedHeader.agentPreset === 'string'
-      ? storedHeader.agentPreset
-      : undefined;
+    const rememberedPreset = resumePreset(storedHeader, storedEvents);
     let preset;
     const handle = await agents.resume({
       resumeSessionId: SessionId(sessionId),
@@ -164,6 +173,15 @@ async function run(ctx, exit) {
       },
     });
     await handle.agent.whenIdle();
+    // Resume can seal an interrupted turn. Replay the settled durable log,
+    // otherwise its old turn/start would leave the terminal permanently busy.
+    await sessions.flush(handle.agent.session);
+    const settledReader = await persistence.open(SessionId(sessionId), 'read');
+    try {
+      storedEvents = (await settledReader.read()).events;
+    } finally {
+      await settledReader.close();
+    }
     return {
       handle,
       selection,
@@ -176,27 +194,6 @@ async function run(ctx, exit) {
   };
 
   const resumeRequest = parseResumeArgs(ctx.get('cmdlineArgs')?.get());
-  const resumeTitle = events => {
-    for (const event of events) {
-      if (event.type !== 'user/message' || event.data === null || typeof event.data !== 'object') {
-        continue;
-      }
-      const content = event.data.content;
-      if (!Array.isArray(content)) {
-        continue;
-      }
-      const text = content
-        .filter(block => block !== null && typeof block === 'object' && block.type === 'text' && typeof block.text === 'string')
-        .map(block => block.text)
-        .join('')
-        .replace(/\s+/g, ' ')
-        .trim();
-      if (text !== '') {
-        return text;
-      }
-    }
-    return 'Untitled session';
-  };
   const listResumeSessions = async () => {
     const persistence = ctx.get('sessionPersistence');
     if (persistence === undefined) {
@@ -208,7 +205,7 @@ async function run(ctx, exit) {
       const reader = await persistence.open(item.header.id, 'read');
       let events;
       try {
-        const first = (await reader.read(0, 96)).events;
+        const first = (await reader.read(0, item.eventCount === undefined ? undefined : 96)).events;
         const count = item.eventCount ?? first.length;
         const tail = count > first.length
           ? (await reader.read(Math.max(first.length, count - 8), 8)).events
@@ -244,6 +241,8 @@ async function run(ctx, exit) {
       onStartNew: () => settle({ kind: 'fresh' }),
       onQuit: () => settle({ kind: 'quit' }),
     }), { exitOnCtrlC: false });
+    app = pickerRef.current;
+    ctx.effect(() => () => settle({ kind: 'quit' }));
   });
 
   let resumeId = resumeRequest.kind === 'resume' ? resumeRequest.sessionId : undefined;
@@ -255,7 +254,15 @@ async function run(ctx, exit) {
     }
     resumeId = selection.kind === 'resume' ? selection.sessionId : undefined;
   }
-  let runtime = resumeId === undefined ? await createSession() : await resumeSession(resumeId);
+  if (disposed) {
+    return;
+  }
+  runtime = resumeId === undefined ? await createSession() : await resumeSession(resumeId);
+  if (disposed) {
+    await runtime.handle.dispose();
+    return;
+  }
+  ctx.effect(() => () => runtime.handle.dispose());
   const llm = ctx.get('llm');
   const permissionPresets = ctx.get('permissionPresets');
   const commands = ctx.get('commands');
@@ -263,7 +270,6 @@ async function run(ctx, exit) {
   // Debounced durability flush while a turn is running: a long or stuck turn
   // must be inspectable on disk without waiting for turn/end. The immediate
   // turn/end flush below remains the boundary checkpoint.
-  let flushTimer = undefined;
   let flushing = false;
   const scheduleFlush = () => {
     if (flushTimer !== undefined || flushing) {
@@ -326,36 +332,60 @@ async function run(ctx, exit) {
     }
   });
 
-  let app; // eslint-disable-line prefer-const
+  const approvals = new Set();
+  ctx.on('approval/request', (request, next) => {
+    if (request.agent !== runtime.handle.agent || disposed) {
+      return next();
+    }
+    return new Promise(resolve => {
+      const id = randomUUID();
+      const settle = outcome => {
+        if (!approvals.delete(cancel)) {
+          return;
+        }
+        request.signal?.removeEventListener('abort', cancel);
+        forward({ type: 'rsh/approval-done', data: { id } });
+        resolve(outcome);
+      };
+      const cancel = () => settle('cancelled');
+      approvals.add(cancel);
+      if (request.signal?.aborted) {
+        cancel();
+        return;
+      }
+      request.signal?.addEventListener('abort', cancel, { once: true });
+      forward({ type: 'rsh/approval', data: { id, toolName: request.toolName, reason: request.reason, settle } });
+    });
+  });
+  ctx.effect(() => () => {
+    for (const cancel of approvals) {
+      cancel();
+    }
+  });
+
   let exited = false;
   const onExit = () => {
     if (exited) {
       return;
     }
     exited = true;
-    // Final durability checkpoint before the harness exits.
-    void sessions.flush(runtime.handle.agent.session).catch(() => {});
-    if (app) {
-      try {
-        app.unmount();
-      } catch {
-        // The App already unmounted itself via useApp().exit().
-      }
-    }
-    // The launcher's graceful path only sets process.exitCode and relies on
-    // the event loop draining; file watchers can keep it alive after the UI
-    // unmounts, so watchdog the process to release the terminal promptly.
-    exit(0);
-    setTimeout(() => {
-      try {
-        process.exit(0);
-      } catch {
-        // The process already exited via the graceful path.
-      }
-    }, 2000);
+    clearTimeout(flushTimer);
+    app?.unmount();
+    void finishSession(runtime.handle.agent, sessions).then(() => exit(0), error => {
+      console.error(`rsh: ${error instanceof Error ? error.message : String(error)}`);
+      exit(1);
+    });
   };
 
   const controls = {
+        executeCommand: async line => {
+          const result = await commands.execute(runtime.handle.agent, line, [], new AbortController().signal);
+          if (result === undefined) {
+            throw new Error(`Unknown command: ${line}`);
+          }
+          await sessions.flush(runtime.handle.agent.session);
+          return result.result;
+        },
         listModels: async () => {
           const options = [];
           for (const provider of llm?.listProviders?.() ?? []) {
@@ -367,8 +397,8 @@ async function run(ctx, exit) {
         },
         selectModel: async option => {
           const resolved = await llm.resolveCallConfig({ provider: option.provider, model: option.model });
-          runtime.selectionRef.current = resolved;
           await defaultModel.saveSelection(resolved);
+          runtime.selectionRef.current = resolved;
           return { route: `${resolved.provider}/${resolved.model}`, reasoning: resolved.reasoningEffort ?? 'provider default' };
         },
         listReasoning: async () => {
@@ -379,8 +409,8 @@ async function run(ctx, exit) {
         selectReasoning: async option => {
           const current = runtime.selectionRef.current;
           const resolved = await llm.resolveCallConfig({ provider: current.provider, model: current.model, ...(option.reasoningEffort === undefined ? {} : { reasoningEffort: option.reasoningEffort }) });
-          runtime.selectionRef.current = resolved;
           await defaultModel.saveSelection(resolved);
+          runtime.selectionRef.current = resolved;
           return { route: `${resolved.provider}/${resolved.model}`, reasoning: resolved.reasoningEffort ?? 'provider default' };
         },
         listMode: async () => {
@@ -405,16 +435,37 @@ async function run(ctx, exit) {
         },
         selectMode: async option => {
           if (option.kind === 'preset') {
+            if (runtime.handle.agent.status !== 'idle') {
+              throw new Error('Stop the active turn before changing the agent preset');
+            }
             if (option.disabled) {
               throw new Error(`${option.id} is unavailable`);
             }
             if (!runtime.hasStarted) {
               const preset = await agentPresets.select(runtime.handle.agent, option.id);
               runtime.preset = preset;
+              await sessions.flush(runtime.handle.agent.session);
               return { preset };
             }
             const previous = runtime;
-            runtime = await createSession(option.id);
+            const replacement = await createSession(option.id);
+            if (disposed || exited) {
+              await replacement.handle.dispose();
+              throw new Error('rsh is closing');
+            }
+            try {
+              await finishSession(previous.handle.agent, sessions);
+            } catch (error) {
+              await replacement.handle.dispose();
+              throw error;
+            }
+            if (disposed || exited) {
+              await replacement.handle.dispose();
+              throw new Error('rsh is closing');
+            }
+            clearTimeout(flushTimer);
+            flushTimer = undefined;
+            runtime = replacement;
             app.rerender(renderApp());
             await previous.handle.dispose();
             return { preset: runtime.preset, replaced: true };
@@ -436,7 +487,11 @@ async function run(ctx, exit) {
         listPermissions: async () => permissionPresets.names.map(name => ({ label: name, value: name })),
         selectPermissions: async option => {
           const controller = new AbortController();
-          await commands.execute(runtime.handle.agent, `/permission ${option.value}`, [], controller.signal);
+          const execution = await commands.execute(runtime.handle.agent, `/permission ${option.value}`, [], controller.signal);
+          if (execution === undefined || execution.result.kind !== 'success') {
+            throw new Error(execution?.result.text ?? 'Permission command is unavailable');
+          }
+          await sessions.flush(runtime.handle.agent.session);
           return option.label;
         },
       };
@@ -460,4 +515,51 @@ async function run(ctx, exit) {
 
   // exitOnCtrlC: false — the App owns Ctrl-C so it can exit the harness cleanly.
   app = render(renderApp(), { exitOnCtrlC: false });
+}
+
+/**
+ * Stop queued and active work before the final durability barrier.
+ * @param agent - owned interactive agent.
+ * @param sessions - session store providing the durability barrier.
+ * @returns completion after cancellation and durable settlement.
+ */
+export async function finishSession(agent, sessions) {
+  agent.cancel({ kind: 'user' }, { keepInbox: false });
+  await agent.whenIdle();
+  await sessions.flush(agent.session);
+}
+
+/**
+ * Resolve the last durable preset selection, falling back to creation metadata.
+ * @param header - stored Session header.
+ * @param events - stored Session events in sequence order.
+ * @returns the selected preset, or undefined for a session without preset metadata.
+ */
+export function resumePreset(header, events) {
+  let preset = header.agentPreset;
+  for (const event of events) {
+    if (event.type === 'agent-preset/selected') {
+      preset = event.data.agentPreset;
+    }
+  }
+  return preset;
+}
+
+/**
+ * Derive a browser title from human input, excluding injected runtime context.
+ * @param events - durable Session events in sequence order.
+ * @returns the first non-empty human message or an untitled label.
+ */
+export function resumeTitle(events) {
+  for (const event of events) {
+    if (event.type !== 'user/message' || event.data.source.kind !== 'user') {
+      continue;
+    }
+    const text = event.data.content.filter(block => block.type === 'text')
+      .map(block => block.text).join('').replace(/\s+/g, ' ').trim();
+    if (text !== '') {
+      return text;
+    }
+  }
+  return 'Untitled session';
 }
