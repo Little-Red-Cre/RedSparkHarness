@@ -541,6 +541,25 @@ describe('UiWorkspaceService', () => {
     expect(archived.sessions.clear).toHaveBeenCalledOnce()
   })
 
+  it('opens archived execution history without restoring its sidebar entry', () => {
+    const current = summary('current')
+    const archived = summary('archived')
+    const b = bench({
+      sessions: sessionState([current, archived], current.id),
+      workspaces: workspaceState([workspace('one', [current.id, archived.id])], [archived.id]),
+    })
+
+    b.uiWorkspace.openSession(archived.id)
+    b.workspaces.list.update(state => ({ ...state, items: [...state.items] }))
+    expect(b.sessions.list.getSnapshot().current).toBe(archived.id)
+    expect(b.workspaces.list.getSnapshot().archivedSessionIds).toContain(archived.id)
+    expect(b.sessions.clear).not.toHaveBeenCalled()
+
+    b.uiWorkspace.openSession(current.id)
+    b.sessions.open(archived.id)
+    expect(b.sessions.clear).toHaveBeenCalledOnce()
+  })
+
   it('forwards archive commands and preserves failures', async () => {
     const idle = sid('idle')
     const b = bench()

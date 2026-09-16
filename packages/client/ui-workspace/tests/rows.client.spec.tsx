@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -623,4 +623,28 @@ describe('workspace browser rows', () => {
     )
     expect(screen.getByRole('treeitem').className).toMatch(/dropAfter/)
   })
+})
+
+it('confirms removal from the sidebar, allows cancellation and presents failures for retry', async () => {
+  const onArchive = vi.fn().mockRejectedValueOnce(new Error('Removal unavailable')).mockResolvedValue(undefined)
+  const node: SessionNode = { id: sid('remove-me'), title: 'Reminder result', blank: false, running: false,
+    runningSubagentCount: 0, completed: false, hasActiveSchedule: false, updatedAt: 0 }
+  render(<SessionNodeItem node={node} currentId={undefined} now={0} onOpen={vi.fn()}
+    onRename={vi.fn()} onFork={vi.fn()} onArchive={onArchive} t={t} />)
+  const open = () => {
+    fireEvent.click(screen.getByRole('button', { name: '会话“Reminder result”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除会话' }))
+  }
+  open()
+  expect(onArchive).not.toHaveBeenCalled()
+  expect(screen.getByText(/执行历史和提醒会同步隐藏/)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '取消' }))
+  expect(onArchive).not.toHaveBeenCalled()
+  open()
+  fireEvent.click(screen.getByRole('button', { name: '删除会话' }))
+  await waitFor(() =>{  expect(screen.getByRole('alert').textContent).toBe('Removal unavailable') })
+  fireEvent.click(screen.getByRole('button', { name: '删除会话' }))
+  await waitFor(() =>{  expect(screen.queryByRole('dialog')).toBeNull() })
+  expect(onArchive).toHaveBeenCalledTimes(2)
+  expect(onArchive).toHaveBeenLastCalledWith(node.id)
 })

@@ -165,6 +165,9 @@ export class SessionController extends TypertRemoteService {
           event.data.header.config.reasoningEffort,
         )
       }
+      if (event.type === 'user/message' && event.data.source.kind === 'plugin' && event.data.source.plugin === 'task-scheduler' && event.data.source.form === 'notice') {
+        ctx.emit('api-session/added', this.listState.summaryFor(session))
+      }
       if (event.type !== 'user/message' || event.data.source.kind !== 'user') return
       ctx.emit('api-session/activity', session.id, event.time)
     })

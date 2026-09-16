@@ -228,7 +228,7 @@
   flex: none;
 }
 
-/* Trailing action buttons surface on hover only (figma 27:4668 / 27:4656):
+/* Trailing actions remain visible on selected and keyboard-focused sessions:
    bare 16px glyphs, gap 12, tertiary grey. */
 .rowActions {
   flex: none;
@@ -238,6 +238,8 @@
 }
 
 .projectRow:hover .rowActions,
+.sessionRow.selected .rowActions,
+.sessionRow:focus-within .rowActions,
 .sessionRow:hover .rowActions,
 .projectRow.menuOpen .rowActions,
 .sessionRow.menuOpen .rowActions {
@@ -245,6 +247,8 @@
 }
 
 .sessionRow:hover .time,
+.sessionRow.selected .time,
+.sessionRow:focus-within .time,
 .sessionRow.menuOpen .time {
   display: none;
 }

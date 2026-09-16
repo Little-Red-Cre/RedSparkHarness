@@ -11,7 +11,7 @@ import {
   HoverCard, IconAlarmClockOutline16, IconArchiveOutline20, IconBranchOutline16,
   IconEditOutline16, IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16,
   IconPlusOutline16, IconTrashOutline16, IconTriangleRightFill14, Menu, relativeTime,
-  StateDot,
+  StateDot, Modal, Button,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
@@ -388,7 +388,7 @@ export function SessionNodeItem({
   /** Fork a session at its last completed turn (row menu action). */
   onFork: (id: SessionNode['id']) => void
   /** Archive this session (row menu action; commits without a dialog). */
-  onArchive: (id: SessionNode['id']) => void
+  onArchive: (id: SessionNode['id']) => void | Promise<void>
   /** Scroll this row into view after search navigation, then acknowledge it. */
   onReveal?: (() => void) | undefined
   /** Present only on draggable rows (workspace-group sessions outside search). */
@@ -404,6 +404,9 @@ export function SessionNodeItem({
   const primaryStatus = statuses[0]
   const showStatus = primaryStatus.state !== 'done' || row.completed
   const [menuOpen, setMenuOpen] = useState(false)
+  const [removeOpen, setRemoveOpen] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [removeError, setRemoveError] = useState<string | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (onReveal === undefined) return
@@ -418,6 +421,7 @@ export function SessionNodeItem({
     { id: 'fork', label: t('menu.fork'), icon: <IconBranchOutline16 /> },
     // 20-native glyph in the menu's 16px icon slot (Menu.module.css .itemIcon).
     { id: 'archive', label: t('menu.archiveSession'), icon: <IconArchiveOutline20 size={16} /> },
+    { id: 'remove', label: t('menu.removeSession'), icon: <IconTrashOutline16 />, danger: true },
   ]
   // Figma session cell: pad 8, status slot 16, then a 4px title gap.
   const ownRow = (
@@ -481,7 +485,13 @@ export function SessionNodeItem({
               setMenuOpen(false)
               if (id === 'rename') onRename(node.id, row.title)
               if (id === 'fork') onFork(node.id)
-              if (id === 'archive') onArchive(node.id)
+              if (id === 'archive') {
+                Promise.resolve(onArchive(node.id)).catch((error: unknown) => {
+                  console.warn('session archive rejected:', error)
+                  setRemoveError(error instanceof Error ? error.message : String(error)); setRemoveOpen(true)
+                })
+              }
+              if (id === 'remove') { setRemoveError(null); setRemoveOpen(true) }
             }}
             portal
             closeOnPointerLeave
@@ -501,7 +511,7 @@ export function SessionNodeItem({
     </div>
   )
   return (
-    <HoverCard
+    <><HoverCard
       anchor={ownRow}
       content={<SessionHoverContent node={node} now={now} t={t} />}
       disabled={menuOpen || drag?.active === true}
@@ -509,5 +519,20 @@ export function SessionNodeItem({
       copyLabel={t('copy')}
       copiedLabel={t('hover.copied')}
     />
+    <Modal open={removeOpen} title={t('menu.removeSession')} closeLabel={t('close')}
+      onClose={() => { if (!removing) setRemoveOpen(false) }}
+      description={t('delete.sessionNote', { name: title })}
+      footer={<>
+        <Button variant="outline" disabled={removing} onClick={() => { setRemoveOpen(false) }}>{t('cancel')}</Button>
+        <Button variant="outline" disabled={removing} onClick={() => {
+          setRemoving(true)
+          Promise.resolve().then(() => onArchive(node.id)).then(() => { setRemoveOpen(false) })
+            .catch((error: unknown) => { setRemoveError(error instanceof Error ? error.message : String(error)) })
+            .finally(() => { setRemoving(false) })
+        }}>{t('menu.removeSession')}</Button>
+      </>}>
+      {removeError && <p role="alert">{removeError}</p>}
+    </Modal>
+    </>
   )
 }

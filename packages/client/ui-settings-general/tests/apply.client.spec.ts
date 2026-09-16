@@ -30,7 +30,7 @@ const NS = 'settings'
 const SEATS = [
   ['settings.trigger', TriggerContent],
   ['settings.header', HeaderContent],
-  ['settings.action', SettingsDocumentAction],
+  ['settings.general.item', SettingsDocumentAction],
   ['settings.close', CloseLabel],
   ['settings.section', GeneralSection],
 ] as const
@@ -71,7 +71,7 @@ function generalLabel(c: TestClient): string | undefined {
 }
 
 function actionInjectedOf(c: TestClient): SettingsDocumentActionInjected {
-  const entry = ownEntries(c, 'settings.action')[0]!
+  const entry = ownEntries(c, 'settings.general.item')[0]!
   return (entry.inject as unknown as () => SettingsDocumentActionInjected)()
 }
 
@@ -101,7 +101,9 @@ describe('ui-settings-general apply', () => {
     expect(generalLabel(c)).toBe('通用设置')
     expect(c.ctx.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
     // The General items and the onboarding steps are feature-owned rows; this plugin seats none of its own.
-    expect(c.ctx.slots.entries('settings.general.item').filter(row => row.locale === NS)).toEqual([])
+    expect(ownEntries(c, 'settings.general.item')).toEqual([expect.objectContaining({
+      component: SettingsDocumentAction, options: { id: 'open-document', order: 1000 },
+    })])
     expect(c.ctx.slots.entries('settings.onboarding').filter(row => row.locale === NS)).toEqual([])
     const { controller, hooks } = actionInjectedOf(c)
     expect(controller.store.getSnapshot().status).toBe('idle')
@@ -186,7 +188,7 @@ describe('ui-settings-general apply', () => {
     onTestFinished(() => { setPageUrl(loopbackUrl) })
     const { c } = await client(mock, start)
     expect(c.connection.isLoopback).toBe(false)
-    expect(ownEntries(c, 'settings.action')).toEqual([])
+    expect(ownEntries(c, 'settings.general.item')).toEqual([])
     // Off-loopback settings stay process-local: no describe read, so the browser language stands.
     expect(c.mock.log.calls('settings/describe')).toEqual([])
     expect(c.ctx.locale.getSnapshot().active).toBe('en')
@@ -205,7 +207,9 @@ describe('ui-settings-general apply', () => {
       expect(ownEntries(c, name)[0]).not.toBe(before[index])
     })
     expect(c.ctx.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
-    expect(c.ctx.slots.entries('settings.general.item').filter(row => row.locale === NS)).toEqual([])
+    expect(ownEntries(c, 'settings.general.item')).toEqual([expect.objectContaining({
+      component: SettingsDocumentAction, options: { id: 'open-document', order: 1000 },
+    })])
     // The recovered registrations still ride the locale path.
     const english = localeView('en', 1)
     const chinese = localeView('zh', 2)

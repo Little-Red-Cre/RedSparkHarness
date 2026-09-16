@@ -86,3 +86,7 @@ None.
 </details>
 
 **Runtime invariant:** No companion is published. Every page and frame is checked against the addressed durable Session.
+
+When an execution Agent retires, a later authoritative list or added event restores input availability for its retained Session. A missing Session stays unavailable; restoring availability does not submit a prompt or restart a completed goal.
+
+Sessions with durable scheduler reminders are nonblank even without a model turn. List-metadata projection version 3 invalidates the old empty-session classification; configuration and title events alone remain blank.

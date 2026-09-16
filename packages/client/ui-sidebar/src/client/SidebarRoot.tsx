@@ -227,6 +227,7 @@ export function SidebarRoot({
       </div>
 
       {/* Expanded, the button carries its own label — tooltip only on the rail. */}
+      {renderSlot('sidebar.header.action', { wide })}
       <Tooltip label={t('session.new.label')} delayMs={500} disabled={wide}>
         <button
           type="button"

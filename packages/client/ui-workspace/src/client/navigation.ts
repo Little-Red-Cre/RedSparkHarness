@@ -90,6 +90,7 @@ export class DirectoryBrowseError extends Error {
 class UiWorkspaceService extends Service implements UiWorkspace {
   private readonly connecting = new Map<WorkspaceId, Promise<SessionId>>()
   private readonly lifetime = new AbortController()
+  private retainedSelection: SessionId | undefined
 
   /**
    * @param ctx - Client root Context.
@@ -132,6 +133,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   openSession(sessionId: SessionId): void {
+    this.retainedSelection = this.workspaces.list.getSnapshot().archivedSessionIds.includes(sessionId) ? sessionId : undefined
     this.sessions.open(sessionId)
     this.ctx.layout.selectPanel(null)
   }
@@ -173,6 +175,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   async archiveSession(sessionId: SessionId): Promise<void> {
+    if (this.retainedSelection === sessionId) this.retainedSelection = undefined
     await this.workspaces.archiveSession(sessionId)
   }
 
@@ -241,6 +244,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   /** @returns true when an archived current selection was cleared. */
   private clearArchivedCurrent(): boolean {
     const current = this.sessions.list.getSnapshot().current
+    if (current !== this.retainedSelection) this.retainedSelection = undefined
+    if (current !== undefined && current === this.retainedSelection) return false
     if (current === undefined
       || !this.workspaces.list.getSnapshot().archivedSessionIds.includes(current)) return false
     this.sessions.clear()

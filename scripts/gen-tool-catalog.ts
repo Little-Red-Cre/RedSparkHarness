@@ -54,6 +54,8 @@ import TerminalSessionService from '@deepseek-ai/dsh-terminal'
 import * as ToolPty from '@deepseek-ai/dsh-tool-terminal'
 import * as ToolGoal from '@deepseek-ai/dsh-tool-goal'
 import * as ToolSchedule from '@deepseek-ai/dsh-schedule'
+import { registerTaskTool } from '../packages/automation/task-scheduler/src/tools.ts'
+import type { TaskStore } from '../packages/automation/task-scheduler/src/store.ts'
 import Lsp from '@deepseek-ai/dsh-lsp'
 import * as ToolLsp from '@deepseek-ai/dsh-tool-lsp'
 import * as ToolSkill from '@deepseek-ai/dsh-tool-skill'
@@ -385,6 +387,19 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-task-scheduler',
+    dir: 'task-scheduler',
+    source: 'packages/automation/task-scheduler/src/tools.ts',
+    requires: ['ctx.tools', 'owning root Agent', 'task database', 'Agent presets and permission presets'],
+    writes: ['tool/call', 'tool/result', 'task plans and run receipts in SQLite', 'independent execution session events'],
+    mount(ctx) {
+      // Catalog harvest reads only the production registration schema; it does not execute a task.
+      registerTaskTool(ctx, ctx, {} as TaskStore, {} as Agent, { minEverySeconds: 300, historyLimit: 50 })
+      return Promise.resolve()
+    },
+    note: 'Opt-in persisted one-shot and fixed-interval Agent tasks. Management is scoped to the creating session; execution uses independent sessions. Completed means Agent-turn completion, not verified code correctness.',
   },
   {
     pkg: '@deepseek-ai/dsh-schedule',

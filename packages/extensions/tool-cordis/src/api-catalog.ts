@@ -2487,6 +2487,79 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'taskScheduler',
+    summary: 'Remote-only adapter sharing the tool\'s ownership, permissions and task database.',
+    description: 'Remote-only adapter sharing the tool\'s ownership, permissions and task database.',
+    methods: [
+      {
+        signature: '@Remote notifications(): TaskNotice[]',
+        description: 'Read this authenticated application\'s reminder inbox, including closed owners.',
+        parameters: [],
+        returns: 'Retained occurrence notifications with read status.',
+      },
+      {
+        signature: '@Remote overview(): SchedulerSnapshot',
+        description: 'Read all task plans and receipts for this authenticated desktop application.',
+        parameters: [],
+        returns: 'Visible plans, execution history and minimum interval.',
+      },
+      {
+        signature: '@Remote async updateTask(id: string, action: \'pause\' | \'resume\' | \'delete\'): Promise<SchedulerSnapshot>',
+        description: 'Change a task from the authenticated application, including closed owner conversations.',
+        parameters: [{ name: 'id', description: 'Task identity.' }, { name: 'action', description: 'Requested lifecycle operation.' }],
+        returns: 'Updated application-wide task snapshot.',
+      },
+      {
+        signature: '@Remote async removeRun(id: string): Promise<SchedulerSnapshot>',
+        description: 'Remove a finished receipt from the application-wide history.',
+        parameters: [{ name: 'id', description: 'Finished execution identity.' }],
+        returns: 'Updated application-wide task snapshot.',
+      },
+      {
+        signature: '@Remote async deleteRun(agent: Agent, id: string): Promise<SchedulerSnapshot>',
+        description: 'Remove a finished record and reminder belonging to the selected session.',
+        parameters: [{ name: 'agent', description: 'Owning root resolved by Remote.' }, { name: 'id', description: 'Finished execution record identity.' }],
+        returns: 'Updated owner-scoped records and plans.',
+      },
+      {
+        signature: '@Remote deleteNotification(id: string): TaskNotice[]',
+        description: 'Delete one occurrence reminder without cancelling any scheduled execution.',
+        parameters: [{ name: 'id', description: 'Exact visible reminder identity.' }],
+        returns: 'Remaining reminders after durable deletion.',
+      },
+      {
+        signature: '@Remote acknowledge(id: string): TaskNotice[]',
+        description: 'Mark one reminder read; viewing or closing the panel alone does not acknowledge it.',
+        parameters: [{ name: 'id', description: 'Exact retained notification identifier.' }],
+        returns: 'Updated application inbox after durable acknowledgement.',
+      },
+      {
+        signature: '@Remote owners(): SchedulerOwner[]',
+        description: 'List open sessions without exposing credentials or changing their lifecycle.',
+        parameters: [],
+        returns: 'Eligible roots with their current workspace and execution settings.',
+      },
+      {
+        signature: '@Remote list(agent: Agent): SchedulerSnapshot',
+        description: 'Read only the selected session\'s tasks and retained receipts.',
+        parameters: [{ name: 'agent', description: 'Root session resolved by the Remote Agent lookup.' }],
+        returns: 'Persisted state and the minimum recurring interval.',
+      },
+      {
+        signature: '@Remote async create(agent: Agent, input: CreateTaskRequest): Promise<SchedulerSnapshot>',
+        description: 'Save a task using the selected session\'s model and permissions; this does not invoke a model.',
+        parameters: [{ name: 'agent', description: 'Creating root session resolved by the Remote Agent lookup.' }, { name: 'input', description: 'Title, prompt, first target and optional period.' }],
+        returns: 'The refreshed owner-scoped state after durable creation.',
+      },
+      {
+        signature: '@Remote change(agent: Agent, id: string, action: \'pause\' | \'resume\' | \'delete\'): SchedulerSnapshot',
+        description: 'Change future admission of an owned task, without cancelling an active occurrence.',
+        parameters: [{ name: 'agent', description: 'Owning root session resolved by the Remote Agent lookup.' }, { name: 'id', description: 'Task identifier belonging to that session.' }, { name: 'action', description: 'Pause, resume or delete.' }],
+        returns: 'Persisted owner-scoped state after the change.',
+      },
+    ],
+  },
+  {
     key: 'terminals',
     summary: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
     description: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
@@ -4084,6 +4157,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly inheritedEventCount?: SessionLogOffset;\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly isSeeded?: boolean;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n}',
   },
   {
+    name: 'CreateTaskRequest',
+    declaration: 'export interface CreateTaskRequest {\n    delaySeconds?: number | undefined;\n    delayFromAt?: boolean | undefined;\n    kind?: \'goal\' | \'scheduled\' | undefined;\n    completionCriteria?: string | undefined;\n    maxGoalRounds?: number | undefined;\n    title: string;\n    prompt: string;\n    at: string;\n    endAt?: string | undefined;\n    everySeconds?: number | undefined;\n}',
+  },
+  {
     name: 'CreateTeamTaskRequest',
     declaration: 'export interface CreateTeamTaskRequest {\n    readonly subject: string;\n    readonly description: string;\n    readonly blockedBy?: readonly TeamTaskId[];\n    readonly writeScopes?: readonly string[];\n}',
   },
@@ -5004,6 +5081,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ResumeAgentOptions {\n    readonly resumeSessionId: SessionId;\n    readonly parentAgent?: Agent;\n    readonly agentOptions?: AgentOptions;\n    readonly signal?: AbortSignal;\n    readonly setup?: AgentSetup;\n}',
   },
   {
+    name: 'Run',
+    declaration: 'export interface Run {\n    id: RunId;\n    taskId: TaskId;\n    scheduledAt: number;\n    startedAt: number;\n    deadline: number;\n    finishedAt: number | null;\n    state: \'running\' | \'completed\' | \'failed\' | \'blocked\' | \'interrupted\';\n    sessionId: string | null;\n    detail: string;\n}',
+  },
+  {
+    name: 'RunId',
+    declaration: 'export type RunId = Branded<\'ScheduledTaskRunId\'>;',
+  },
+  {
     name: 'RunnerFailureRule',
     declaration: 'export interface RunnerFailureRule {\n    allowedExitCodes?: readonly number[];\n    fatalSignatures: readonly string[];\n    informationalLines?: readonly string[];\n}',
   },
@@ -5050,6 +5135,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ScheduledToolPreparation',
     declaration: 'export type ScheduledToolPreparation = {\n    kind: \'dispatch\';\n    exec: ToolRunContext;\n} | {\n    kind: \'post-result\';\n    exec: ToolRunContext;\n    result: ToolExecutionResult;\n} | {\n    kind: \'final-result\';\n    exec: ToolRunContext;\n    result: ToolExecutionResult;\n};',
+  },
+  {
+    name: 'SchedulerOwner',
+    declaration: 'export interface SchedulerOwner {\n    id: SessionId;\n    title: string;\n    workspace: string;\n    model: string;\n    permission: string;\n}',
+  },
+  {
+    name: 'SchedulerSnapshot',
+    declaration: 'export interface SchedulerSnapshot {\n    tasks: Task[];\n    runs: (Run & {\n        reminderStartedAt?: number | null;\n        title?: string;\n        kind?: \'goal\' | \'scheduled\' | undefined;\n    })[];\n    minEverySeconds: number;\n}',
   },
   {
     name: 'Scoped',
@@ -5934,6 +6027,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TableValueOf',
     declaration: 'export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;',
+  },
+  {
+    name: 'Task',
+    declaration: 'export interface Task extends TaskInput {\n    pausedRemainingMs?: number;\n    journalSessionId?: string;\n    resumeSessionId?: string;\n    id: TaskId;\n    ownerSessionId: string;\n    state: \'active\' | \'paused\' | \'deleted\';\n    nextAt: number | null;\n}',
+  },
+  {
+    name: 'TaskId',
+    declaration: 'export type TaskId = Branded<\'ScheduledTaskId\'>;',
+  },
+  {
+    name: 'TaskInput',
+    declaration: 'export interface TaskInput {\n    countdownStartedAt?: string | undefined;\n    kind?: \'goal\' | \'scheduled\' | undefined;\n    completionCriteria?: string | undefined;\n    maxGoalRounds?: number | undefined;\n    title: string;\n    prompt: string;\n    workspace: string;\n    agentPreset: string;\n    permissionPreset: string;\n    provider: string;\n    model: string;\n    at: string;\n    endAt?: string | undefined;\n    everySeconds?: number | undefined;\n}',
+  },
+  {
+    name: 'TaskNotice',
+    declaration: 'export interface TaskNotice {\n    taskId?: string;\n    occurrenceCount?: number;\n    directReminder?: boolean;\n    recurring?: boolean;\n    nextAt?: number | null;\n    endAt?: string;\n    planState?: Task[\'state\'];\n    id: string;\n    title: string;\n    body: string;\n    time: number;\n    phase: \'due\' | \'completed\' | \'failed\' | \'blocked\' | \'interrupted\';\n    sessionId: string | null;\n    read: boolean;\n    dismissed?: boolean;\n}',
   },
   {
     name: 'TeamId',

@@ -488,6 +488,7 @@ export class SessionManager {
           for (const s of this.summaries) {
             const session = this.sessions.get(s.sessionId)
             if (session === undefined) continue
+            session.handleAvailable()
             session.handleBlank(s.blank)
             session.handleRunning(s.running)
           }
@@ -708,6 +709,7 @@ export class SessionManager {
    */
   handleSessionAdded(summary: SessionSummary): void {
     this.mergeSummary(summary)
+    this.sessions.get(summary.sessionId)?.handleAvailable()
     this.sessions.get(summary.sessionId)?.handleBlank(summary.blank)
     const projections = summary.projections
     if (projections !== undefined) {

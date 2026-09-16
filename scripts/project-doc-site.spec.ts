@@ -157,9 +157,15 @@ describe('publishableImage', () => {
     const outside = mkdtempSync(join(tmpdir(), 'dsh-doc-site-outside-'))
     roots.push(outside)
     writeFileSync(join(outside, 'secret.png'), 'not really a png\n')
-    symlinkSync(join(outside, 'secret.png'), join(root, 'packages/linked.png'))
+    // Windows directory junctions exercise realpath traversal without requiring
+    // the privilege needed to create a file symlink.
+    const linked = process.platform === 'win32'
+      ? join(root, 'packages/linked', 'secret.png')
+      : join(root, 'packages/linked.png')
+    if (process.platform === 'win32') symlinkSync(outside, join(root, 'packages/linked'), 'junction')
+    else symlinkSync(join(outside, 'secret.png'), linked)
 
-    expect(publishableImage(join(root, 'packages/linked.png'), realpathSync(root))).toBeUndefined()
+    expect(publishableImage(linked, realpathSync(root))).toBeUndefined()
     expect(publishableImage(join(outside, 'secret.png'), realpathSync(root))).toBeUndefined()
   })
 

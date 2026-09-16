@@ -162,10 +162,10 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.header', () =>
     ctx.slots.register({ name: 'settings.header', locale: NS }, HeaderContent))
   if (documentInjected !== undefined) {
-    ctx.slots.inject('settings.action', () => ctx.slots.register({
-      name: 'settings.action',
+    ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+      name: 'settings.general.item',
       id: 'open-document',
-      order: 0,
+      order: 1000,
       locale: NS,
       inject: documentInjected,
     }, SettingsDocumentAction))

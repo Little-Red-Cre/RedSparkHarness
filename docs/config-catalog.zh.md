@@ -2635,6 +2635,36 @@ export interface Config {
 
 来源：[`packages/core/system-prompt/src/index.ts:242`](../packages/core/system-prompt/src/index.ts)
 
+<a id="deepseek-aidsh-task-scheduler"></a>
+
+## `@deepseek-ai/dsh-task-scheduler`
+
+依赖： `goals` · `agents` · `sessions` · `sessionPersistence` · `tools` · `agentPresets` · `permissionPresets` · `sessionTitle` · `workspaceRegistry`
+
+```ts config-catalog
+/** Configuration of one opt-in scheduler instance. */
+export interface Config extends SchedulerOptions {
+  /** Absolute path of a dedicated local SQLite database for plans and run receipts. */
+  path: string
+}
+
+/** Polling, execution and retention limits validated by the plugin configuration. */
+export interface SchedulerOptions {
+  /** Milliseconds between due-time checks; does not change the stored target time. */
+  pollMs: number
+  /** Maximum milliseconds allowed for one execution before cancellation and uncertain settlement. */
+  runTimeoutMs: number
+  /** Maximum simultaneous running claims across users of the same database. */
+  maxConcurrent: number
+  /** Finished receipts retained per task and maximum receipts returned by a history query. */
+  historyLimit: number
+  /** Minimum fixed recurring interval accepted at creation, in seconds. */
+  minEverySeconds: number
+}
+```
+
+来源： [`packages/automation/task-scheduler/src/index.ts:17`](../packages/automation/task-scheduler/src/index.ts)
+
 <a id="deepseek-aidsh-terminal-bash"></a>
 
 ## `@deepseek-ai/dsh-terminal-bash`

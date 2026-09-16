@@ -47,7 +47,9 @@ export function applySessionListMetadata(
   state: SessionListMetadata,
   event: SessionEvent,
 ): SessionListMetadata {
-  const blank = state.blank && event.type !== 'turn/start'
+  // Reminder journals contain user-visible records without starting a model turn.
+  const notice = event.type === 'user/message' && event.data.source.kind === 'plugin' && event.data.source.plugin === 'task-scheduler' && event.data.source.form === 'notice'
+  const blank = state.blank && event.type !== 'turn/start' && !notice
   const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
     ? event.time
     : state.lastPromptAt
@@ -83,7 +85,7 @@ export class ApiSessionList {
       init: () => ({ blank: true, lastPromptAt: null }),
       apply: applySessionListMetadata,
       wire: { viewSchema: sessionListMetadataSchema, view: state => state },
-      stateVersion: 1,
+      stateVersion: 3,
     })
     ctx.inject(['attachments'], (attachmentCtx) => {
       ctx.sessionProjections.register<'imageLimits', null>({

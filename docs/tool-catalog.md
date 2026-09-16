@@ -29,6 +29,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-fs-search` | `glob`, `grep` | `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
 | `@deepseek-ai/dsh-tool-terminal` | `terminal_close`, `terminal_list`, `terminal_open`, `terminal_read`, `terminal_send`, `terminal_signal` | `ctx.tools`, `ctx.terminals`, `ctx.systemPrompt`, `ctx.jobs at call time for run_in_background` | `tool/call`, `tool/result` | - | The six terminal tools are opt-in and complement one-shot shell/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.jobs`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema. |
 | `@deepseek-ai/dsh-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
+| `@deepseek-ai/dsh-task-scheduler` | `task_schedule` | `ctx.tools`, `owning root Agent`, `task database`, `Agent presets and permission presets` | `tool/call`, `tool/result`, `task plans and run receipts in SQLite`, `independent execution session events` | - | Opt-in persisted one-shot and fixed-interval Agent tasks. Management is scoped to the creating session; execution uses independent sessions. Completed means Agent-turn completion, not verified code correctness. |
 | `@deepseek-ai/dsh-schedule` | `schedule_create`, `schedule_delete`, `schedule_list` | `ctx.tools`, `ctx.sessions`, `Session persistence`, `a future live root Agent` | `tool/call`, `schedule/change create or delete`, `tool/result` | - | Registered only inside live root Agent scopes created after the opt-in Schedule plugin loads. Version 1 accepts after_seconds, explicit absolute at, and bounded fixed-rate every_seconds, and discloses session-local delivery; management reads and mutations require the shared Session persistence barrier. |
 | `@deepseek-ai/dsh-tool-lsp` | `lsp` | `ctx.tools`, `ctx.lsp`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@deepseek-ai/dsh-lsp-stdio`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema. |
 | `@deepseek-ai/dsh-tool-ralph` | `ralph` | `ctx.tools`, `ctx.workflowEngine`, `ctx.subagents`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents every fresh round)` | `tool/call`, `tool/result`, `workflow and child session events during execution` | - | A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap. |
@@ -1139,6 +1140,81 @@ Update the exact current goal revision. edit, pause, and resume require a direct
 Source: [`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.ts)
 
 create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds.
+
+<a id="deepseek-aidsh-task-scheduler"></a>
+
+## `@deepseek-ai/dsh-task-scheduler`
+
+### `task_schedule`
+
+Manage this session's persistent Agent tasks: create, list, pause, resume, delete, or history. Only create tasks when the user requests scheduled work or explicitly requests sustained goal work. Goal tasks require completion criteria, cannot recur on a timer, and use the same execution session when explicitly resumed. Goal completion requires the durable goal complete state. Each occurrence opens an independent execution session using the current workspace, model, agent preset, and permission preset. Runs require the application to remain running; plans survive restarts. Overdue recurring intervals coalesce to one occurrence. Pausing scheduled tasks freezes the remaining wait durably; resume waits that remainder and anchors later intervals to the resumed occurrence. An explicit end time never moves; resume is rejected if the next occurrence would reach or exceed it. Pause/delete prevents future starts but does not cancel an active scheduled run. Completed means the Agent turn ended, not that tests passed. Interrupted runs may have side effects and are not automatically replayed. Times must contain an explicit UTC offset. Scheduled runs cannot create other scheduled tasks.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "list",
+        "pause",
+        "resume",
+        "delete",
+        "history"
+      ]
+    },
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Use goal for explicitly requested sustained work; scheduled for reminders or periodic checks.",
+      "enum": [
+        "goal",
+        "scheduled"
+      ]
+    },
+    "completion_criteria": {
+      "type": "string",
+      "description": "Required for goal tasks: observable acceptance criteria and verification required before completion."
+    },
+    "max_goal_rounds": {
+      "type": "integer",
+      "description": "Goal continuation rounds per attempt, 1–100; defaults to 10."
+    },
+    "at": {
+      "type": "string",
+      "description": "Future RFC 3339 time with UTC offset; first occurrence for a recurring task."
+    },
+    "after_seconds": {
+      "type": "integer",
+      "description": "For relative requests, use exact seconds instead of calculating at: two minutes = 120. Server computes from creation time without rounding. Absolute clock times use Beijing UTC+08:00."
+    },
+    "end_at": {
+      "type": "string",
+      "description": "Optional RFC 3339 admission deadline after at. No new runs start at or after this time; running work continues."
+    },
+    "every_seconds": {
+      "type": "integer",
+      "description": "Optional fixed interval, at least 300 seconds."
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
+```
+
+Source: [`packages/automation/task-scheduler/src/tools.ts`](../packages/automation/task-scheduler/src/tools.ts)
+
+Opt-in persisted one-shot and fixed-interval Agent tasks. Management is scoped to the creating session; execution uses independent sessions. Completed means Agent-turn completion, not verified code correctness.
 
 <a id="deepseek-aidsh-schedule"></a>
 

@@ -574,6 +574,13 @@ export class Session implements SessionFace {
     this.notifier.markDirty()
   }
 
+  /** Restore input availability when the Host confirms the persisted session still exists. */
+  handleAvailable(): void {
+    if (!this.removed) return
+    this.removed = false
+    this.notifier.markDirty()
+  }
+
   /**
    * `api-session/error` relay: the outlet for live failures with no turn position.
    * @param message - the stringified error.
