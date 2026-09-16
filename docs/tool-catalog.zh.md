@@ -33,6 +33,7 @@
 | `@deepseek-ai/dsh-tool-fs-search` | `glob`、`grep` | `ctx.tools`、`ctx.subprocess`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn 随包提供的 ripgrep 二进制文件（`@vscode/ripgrep`），并作为普通前台调用运行，绝不作为后台任务；无需在宿主机安装 `rg`，也不经过 shell 层。本目录使用 `sampleOverCapGlobResults: true`；部署必须显式选择该行为。结果超过上限时，会通过可选的 ctx.spillStore 后端保存完整的格式化列表；在共置部署中，如果后端公开本地路径，返回的定位信息可供后续读取／搜索。 |
 | `@deepseek-ai/dsh-tool-terminal` | `terminal_close`、`terminal_list`、`terminal_open`、`terminal_read`、`terminal_send`、`terminal_signal` | `ctx.tools`、`ctx.terminals`、`ctx.systemPrompt`、`ctx.jobs at call time for run_in_background` | `tool/call`、`tool/result` | - | 这 6 个终端工具需要选择启用，用于补充一次性 bash／文件系统工具。`terminal_send(run_in_background: true)` 会注册到 `ctx.jobs`；schema 不包含 TUI、具名按键序列、BEL、调整尺寸、自动启动和跨 agent 共享。 |
 | `@deepseek-ai/dsh-tool-goal` | `create_goal`、`get_goal`、`update_goal` | `ctx.tools`、`ctx.agents`、`ctx.goals`、`ctx.systemPrompt`、`a calling Agent in an authorized open turn` | `tool/call`、`goal/change for mutations`、`tool/result` | - | create、edit、pause 和 resume 要求直接来自人类的根权限；complete 和 blocked 也接受确切的当前 Goal Round。blocked 的默认下限是 3 个获准的 Round。 |
+| `@deepseek-ai/dsh-task-scheduler` | `task_schedule` | `ctx.tools`, `owning root Agent`, `task database`, `Agent presets and permission presets` | `tool/call`, `tool/result`, `task plans and run receipts in SQLite`, `independent execution session events` | - | 按需启用的持久化单次与固定周期 Agent 任务。管理限于创建会话，执行使用独立会话。完成表示 Agent 轮次结束，不代表代码验证通过。 |
 | `@deepseek-ai/dsh-schedule` | `schedule_create`、`schedule_delete`、`schedule_list` | `ctx.tools`、`ctx.sessions`、Session 持久化、未来创建的 live 根 Agent | `tool/call`、`schedule/change create or delete`、`tool/result` | - | 仅在选择启用的 Schedule 插件加载后创建的 live 根 Agent scope 内注册。版本 1 接受 after_seconds、显式绝对 at 和有界固定速率 every_seconds，并披露 session-local 交付；管理读取与变更必须通过共享的 Session 持久化 barrier。 |
 | `@deepseek-ai/dsh-tool-lsp` | `lsp` | `ctx.tools`、`ctx.lsp`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，因此其模型可见 schema 在更换提供方时保持稳定。运行时要求已注册提供方，例如 `@deepseek-ai/dsh-lsp-stdio`；如果没有提供方，查询会返回结构化 `LSP_UNAVAILABLE` 错误，而不会改变 schema。 |
 | `@deepseek-ai/dsh-tool-ralph` | `ralph` | `ctx.tools`、`ctx.workflowEngine`、`ctx.subagents`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents every fresh round)` | `tool/call`、`tool/result`、`workflow and child session events during execution` | - | 固定的前台工作流会在每个 Round 启动一个全新的结构化子级；模型只能选择不可变目标和可选的 Round 上限。 |
@@ -1145,6 +1146,81 @@ glob 和 grep 是无条件可用的发现工具，通过 ctx.subprocess spawn �
 来源：[`packages/goal/tool-goal/src/index.ts`](../packages/goal/tool-goal/src/index.ts)
 
 create、edit、pause 和 resume 要求直接来自人类的根权限；complete 和 blocked 也接受确切的当前 Goal Round。blocked 的默认下限是 3 个获准的 Round。
+
+<a id="deepseek-aidsh-task-scheduler"></a>
+
+## `@deepseek-ai/dsh-task-scheduler`
+
+### `task_schedule`
+
+管理当前会话的持久化 Agent 任务：创建、列出、暂停、恢复、删除或查看历史。仅在用户要求定时工作时创建任务。每次执行创建独立会话，使用创建时保存的工作区、模型、Agent 预设和权限预设。应用运行时才能执行，计划在重启后保留。错过的重复周期合并为一次。暂停定时任务会持久保存剩余等待时间；恢复后等待剩余时长，并以恢复后的执行时间为周期基准。明确设置的结束时间不顺延；恢复后的执行时间达到或超过结束时间时拒绝恢复。暂停或删除不取消已开始的运行。完成表示轮次结束，不代表测试通过。中断运行可能已有副作用，不自动重放。时间必须包含 UTC 偏移量。定时执行会话不能创建更多定时任务。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "list",
+        "pause",
+        "resume",
+        "delete",
+        "history"
+      ]
+    },
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Use goal for explicitly requested sustained work; scheduled for reminders or periodic checks.",
+      "enum": [
+        "goal",
+        "scheduled"
+      ]
+    },
+    "completion_criteria": {
+      "type": "string",
+      "description": "Required for goal tasks: observable acceptance criteria and verification required before completion."
+    },
+    "max_goal_rounds": {
+      "type": "integer",
+      "description": "Goal continuation rounds per attempt, 1–100; defaults to 10."
+    },
+    "at": {
+      "type": "string",
+      "description": "Future RFC 3339 time with UTC offset; first occurrence for a recurring task."
+    },
+    "after_seconds": {
+      "type": "integer",
+      "description": "For relative requests, use exact seconds instead of calculating at: two minutes = 120. Server computes from creation time without rounding. Absolute clock times use Beijing UTC+08:00."
+    },
+    "end_at": {
+      "type": "string",
+      "description": "Optional RFC 3339 admission deadline after at. No new runs start at or after this time; running work continues."
+    },
+    "every_seconds": {
+      "type": "integer",
+      "description": "Optional fixed interval, at least 300 seconds."
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
+```
+
+来源： [`packages/automation/task-scheduler/src/tools.ts`](../packages/automation/task-scheduler/src/tools.ts)
+
+按需启用的持久化单次与固定周期 Agent 任务。管理限于创建会话，执行使用独立会话。完成表示 Agent 轮次结束，不代表代码验证通过。
 
 <a id="deepseek-aidsh-schedule"></a>
 

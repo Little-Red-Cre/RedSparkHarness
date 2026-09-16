@@ -25,5 +25,6 @@ const startup: DshDesktopStartupApi = {
 
 contextBridge.exposeInMainWorld('dshDesktop', location.protocol === 'dsh-app:' && location.hostname === 'shell'
   ? startup : location.protocol === 'dsh-app:' && location.hostname === 'app'
-    ? { protocolVersion: 1, pet: { update: (value: unknown) => ipcRenderer.invoke(DESKTOP_IPC.petUpdate, value) } }
+    ? { protocolVersion: 1, notifyTask: (value: unknown) => ipcRenderer.invoke(DESKTOP_IPC.taskNotification, value),
+      pet: { update: (value: unknown) => ipcRenderer.invoke(DESKTOP_IPC.petUpdate, value) } }
     : { protocolVersion: 1 })

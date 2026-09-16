@@ -245,6 +245,25 @@ describe('search', () => {
 })
 
 describe('Host Remote event routing', () => {
+  it('restores a retired execution session only after the Host lists or adds it again', async () => {
+    const api = new FakeApiClient()
+    const manager = new SessionManager(fakeRemote(api))
+    manager.handleSessionAdded(summary(S1))
+    const session = manager.get(S1)
+    manager.handleSessionRemoved(S1)
+    api.onList = () => Promise.resolve(ok({ items: [] }))
+    await manager.refreshList()
+    expect(session.getSnapshot().removed).toBe(true)
+    api.onList = () => Promise.resolve(ok({ items: [summary(S1)] as never[] }))
+    await manager.refreshList()
+    expect(manager.get(S1)).toBe(session)
+    expect(session.getSnapshot().removed).toBe(false)
+    manager.handleSessionRemoved(S1)
+    manager.handleSessionAdded(summary(S1))
+    expect(session.getSnapshot().removed).toBe(false)
+    await manager.dispose()
+  })
+
   it('adds/removes/flips sessions and keeps removed instances resident', async () => {
     const api = new FakeApiClient()
     const manager = new SessionManager(fakeRemote(api))

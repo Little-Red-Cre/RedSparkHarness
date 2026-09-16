@@ -1,4 +1,4 @@
-/** Optional settings-header action for opening a file-backed Host document. */
+/** Collapsed General settings action for opening a file-backed Host document. */
 
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
@@ -19,7 +19,7 @@ export interface SettingsDocumentActionInjected {
 
 /** Header-action owner share, localized copy, and the registrant's state face. */
 export type SettingsDocumentActionProps =
-  PropsRuntime<'settings.action'> & PropsLocale<'settings'> & InjectFace<SettingsDocumentActionInjected>
+  PropsRuntime<'settings.general.item'> & PropsLocale<'settings'> & InjectFace<SettingsDocumentActionInjected>
 
 /**
  * Render the open-document action only after Host metadata confirms document availability.
@@ -36,16 +36,19 @@ export function SettingsDocumentAction({ controller, useSnapshot, t }: SettingsD
   if (state.status !== 'ready') return null
 
   return (
-    <div className={css.action}>
-      {state.error === null ? null : <span className={css.error} role="alert">{t('openDocument.error')}</span>}
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={state.opening}
-        onClick={() => { void controller.open() }}
-      >
-        {t('openDocument')}
-      </Button>
-    </div>
+    <details>
+      <summary>{t('general.advanced')}</summary>
+      <div className={css.action}>
+        {state.error === null ? null : <span className={css.error} role="alert">{t('openDocument.error')}</span>}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={state.opening}
+          onClick={() => { void controller.open() }}
+        >
+          {t('openDocument')}
+        </Button>
+      </div>
+    </details>
   )
 }

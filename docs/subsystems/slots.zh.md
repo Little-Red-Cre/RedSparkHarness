@@ -115,6 +115,7 @@ root
 │  ├─ sidebar.brand.name
 │  ├─ sidebar.panellist
 │  ├─ sidebar.footer.action
+│  ├─ sidebar.header.action
 │  ├─ sidebar.workspaces
 │  │  └─ sidebar.workspaces.directoryFlow
 │  └─ sidebar.settings

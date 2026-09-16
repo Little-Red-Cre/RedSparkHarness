@@ -1,5 +1,5 @@
 /**
- * The summary blank bit means "conversation not started" (no turn has run),
+ * The summary blank bit excludes sessions with turns or scheduler reminder records,
  * not "log empty": standalone plugin events — command lifecycle records,
  * plan/mode, permission knob events, session titles — never flip it, so running /plan or /goal on a
  * fresh session keeps it list-hidden and reusable, while the first accepted
@@ -13,6 +13,7 @@ import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import SessionStore from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Side-effect type imports: the configuration-event SessionEventMap merges.
 import type {} from '@deepseek-ai/dsh-permission-presets'
@@ -71,4 +72,32 @@ describe('summary blank = conversation not started', () => {
     session.append('turn/start', { turn: 0 })
     expect(await listBlank(remote, session.id)).toBe(false)
   })
+})
+
+
+it('keeps a durable reminder journal visible without a model turn', async () => {
+  const { ctx, remote, attach } = await harness()
+  try {
+    const session = ctx.sessions.create()
+    attach(session)
+    const updates: boolean[] = []
+    ctx.on('api-session/added', (summary) => { if (summary.sessionId === session.id) updates.push(summary.blank) })
+    session.append('user/message', createUserMessage({
+      source: { kind: 'plugin', plugin: 'task-scheduler', form: 'notice', summary: '喝水提醒' },
+      content: [{ type: 'text', text: '16:05:00 已提醒' }],
+    }), { surfaceOp: 'append' })
+    expect(await listBlank(remote, session.id)).toBe(false)
+    expect(updates).toContain(false)
+    expect(session.snapshotEvents().some(event => event.type === 'turn/start')).toBe(false)
+  } finally { await ctx.fiber.dispose() }
+})
+
+
+it('does not turn ordinary plugin context into a conversation', async () => {
+  const { ctx, remote, attach } = await harness()
+  try {
+    const session = ctx.sessions.create(); attach(session)
+    session.append('user/message', createUserMessage({ source: { kind: 'plugin', plugin: 'context', form: 'notice', summary: 'Configuration' }, content: [{ type: 'text', text: 'Context only' }] }), { surfaceOp: 'append' })
+    expect(await listBlank(remote, session.id)).toBe(true)
+  } finally { await ctx.fiber.dispose() }
 })

@@ -93,6 +93,7 @@ describe('SettingsDocumentAction', () => {
       controller={controller}
       useSnapshot={bindSnapshotSelector(controller.store)}
     />)
+    fireEvent.click(await screen.findByText('Advanced settings'))
     const action = await screen.findByRole('button', { name: 'Open configuration file' })
     fireEvent.click(action)
     await waitFor(() => { expect(openDocument).toHaveBeenCalledWith() })
@@ -125,6 +126,7 @@ describe('SettingsDocumentAction', () => {
     await waitFor(() => { expect(controller.store.getSnapshot().status).toBe('unavailable') })
     expect(describe).toHaveBeenCalledTimes(1)
     await mirror.load()
+    fireEvent.click(await screen.findByText('Advanced settings'))
     expect(await screen.findByRole('button', { name: 'Open configuration file' })).toBeTruthy()
     expect(describe).toHaveBeenCalledTimes(2)
   })
@@ -148,6 +150,7 @@ describe('SettingsDocumentAction', () => {
       controller={controller}
       useSnapshot={bindSnapshotSelector(controller.store)}
     />)
+    fireEvent.click(await screen.findByText('Advanced settings'))
     fireEvent.click(await screen.findByRole('button', { name: 'Open configuration file' }))
     expect((await screen.findByRole('alert')).textContent).toBe('Could not open configuration file')
     expect(screen.getByRole('button', { name: 'Open configuration file' })).toBeTruthy()

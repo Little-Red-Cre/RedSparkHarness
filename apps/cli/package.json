@@ -61,6 +61,7 @@
     "@deepseek-ai/dsh-pwsh-local": "workspace:^",
     "@deepseek-ai/dsh-pwsh-sandbox": "workspace:^",
     "@deepseek-ai/dsh-schedule": "workspace:^",
+    "@deepseek-ai/dsh-task-scheduler": "workspace:^",
     "@deepseek-ai/dsh-sdk-app": "workspace:^",
     "@deepseek-ai/dsh-sdk-minimal": "workspace:^",
     "@deepseek-ai/dsh-session-projection": "workspace:^",

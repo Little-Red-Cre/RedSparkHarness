@@ -33,6 +33,8 @@ The General section holds rows registered into `settings.general.item` by featur
 
 ### Opening the configuration file
 
+The action lives in General → Advanced settings, collapsed by default. It is not registered in the shared Settings header.
+
 On a loopback browser, the shell renders **Open configuration file** only when the Host confirms that a provider-owned local document can be prepared. The action opens that document in the native text editor (bypassing the browser file association on macOS). Remote browsers never register the action and never issue the privileged settings read.
 
 ### Onboarding steps

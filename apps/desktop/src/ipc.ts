@@ -6,6 +6,7 @@ import type { DesktopBackendState } from './backend-controller.ts'
 
 /** IPC channel names kept private to the desktop application bundle. */
 export const DESKTOP_IPC = {
+  taskNotification: 'dsh-desktop:task-notification',
   petUpdate: 'dsh-desktop:pet-update',
   petState: 'dsh-desktop:pet-state',
   windowMenu: 'dsh-desktop:window-menu',

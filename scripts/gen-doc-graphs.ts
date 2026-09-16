@@ -99,6 +99,13 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'taskScheduler',
+    pkg: 'task-scheduler',
+    title: 'Persistent task management Remote adapter',
+    mode: 'core',
+    note: 'Owns authenticated task creation, lifecycle changes, run history, and reminder acknowledgement.',
+  },
+  {
     key: 'attachments',
     pkg: 'attachment',
     title: 'Durable binary attachment storage',

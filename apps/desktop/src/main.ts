@@ -25,6 +25,7 @@ import { desktopErrorState } from './startup-error.ts'
 import { startupFailureDocument } from './startup-document.ts'
 import { DesktopPetWindow } from './pet-window.ts'
 import { parsePetPresentation } from './pet-presentation.ts'
+import { showTaskNotification } from './task-notification.ts'
 
 const SCHEME = 'dsh-app'
 let focusPrimaryWindow = (): void => {}
@@ -353,6 +354,13 @@ async function main(): Promise<void> {
       throw new Error('Desktop pet updates require the primary application frame')
     }
     desktopPet.update(parsePetPresentation(value))
+  })
+  ipcMain.handle(DESKTOP_IPC.taskNotification, (event, value: unknown) => {
+    assertDesktopSender(event, ['app'])
+    if (event.sender !== mainWindow?.webContents || event.senderFrame !== event.sender.mainFrame) {
+      throw new Error('Task notifications require the primary application frame')
+    }
+    showTaskNotification(value)
   })
   ipcMain.handle(DESKTOP_IPC.windowMenu, (event) => {
     assertDesktopSender(event, ['app', 'shell'])
