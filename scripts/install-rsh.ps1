@@ -5,7 +5,7 @@ param(
 
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $node = Get-Command node -ErrorAction Stop
-$tsxLoader = Join-Path $projectRoot 'node_modules\tsx\dist\loader.mjs'
+$tsxLoader = Join-Path $projectRoot 'node_modules\tsx\dist\esm\index.mjs'
 $targetDirectory = Split-Path -Parent $Destination
 
 if (-not (Test-Path -LiteralPath $tsxLoader)) {

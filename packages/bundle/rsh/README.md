@@ -44,6 +44,8 @@ No runtime invariant companion is published: the Agent, Session, and preset serv
 
 The UI derives from the MIT-licensed `gxinxing/deepseek-harness-tui`. Its license is preserved in [LICENSE](LICENSE), with dependency notices in [THIRD_PARTY_NOTICES.md](../../../THIRD_PARTY_NOTICES.md).
 
+All displayed text passes through terminal-control filtering before Ink applies styling. Model output, tool results, session titles, and approval reasons cannot supply executable terminal escape sequences.
+
 </details>
 
 ## Model Experience

@@ -44,6 +44,8 @@ kind: "package-bundle"
 
 界面派生自采用 MIT 许可证的 `gxinxing/deepseek-harness-tui`。许可证保存在 [LICENSE](LICENSE)，依赖声明见 [THIRD_PARTY_NOTICES.md](../../../THIRD_PARTY_NOTICES.md)。
 
+所有显示文本在 Ink 应用样式前均经过终端控制字符过滤。模型输出、工具结果、会话标题和审批原因不能提供可执行的终端转义序列。
+
 </details>
 
 ## Model Experience

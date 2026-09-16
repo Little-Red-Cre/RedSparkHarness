@@ -20,10 +20,16 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, Text, useApp, useInput, useStdout } from 'ink';
+import { Box, Text as InkText, useApp, useInput, useStdout } from 'ink';
 import TextInput from 'ink-text-input';
 import { createUserMessage } from '@deepseek-ai/dsh-llm';
-import { userMessageBg, codeChipBg } from './utils.js';
+import { userMessageBg, codeChipBg, stripAnsi } from './utils.js';
+
+/** Only Ink-generated styling may emit terminal control sequences. */
+function Text({ children, ...props }) {
+  return React.createElement(InkText, props,
+    React.Children.map(children, child => typeof child === 'string' ? stripAnsi(child) : child));
+}
 
 /** createElement shorthand. */
 const el = React.createElement;
@@ -240,12 +246,6 @@ function reasonText(reason) {
     default:
       return String(reason.kind);
   }
-}
-
-/** Strip CSI/OSC escapes so raw tool bytes cannot repaint the TUI. */
-const ANSI_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
-function stripAnsi(text) {
-  return String(text).replace(ANSI_RE, '');
 }
 
 /** Compact token-usage line; omits missing fields. */

@@ -14,6 +14,8 @@ The shipped `rsh` profile composes `dsh-base` with `dsh-rsh`. The named `tui-run
 
 The renderer derives completed output from Session events and transient output from `agent/assistant-stream`. Failed attempts clear transient output. Accepted user messages retain their transcript rows when later queued work is cancelled. Slash commands dispatch through the command service instead of entering the model inbox. Model and reasoning selectors validate routes through the LLM service; permission changes use the existing command. Preset replacement requires an idle Agent and flushes the previous Session before disposing its handle.
 
+The renderer strips terminal commands and control bytes at every Text component, using Node's VT-control parser before removing remaining control bytes. Filtering only tool output would leave live model text, stored transcripts, and approval reasons able to emit clipboard or cursor commands. Ink adds trusted styling after filtering; the durable Session remains unchanged.
+
 Approval requests for the owned Agent appear in the terminal. The user selects `y` for a one-time grant or `n` for rejection. Requests queue independently, and abort or plugin disposal cancels outstanding requests. Requests for other Agents delegate to the next answerer.
 
 Normal exit cancels active and queued work, waits for Agent idleness, and awaits the final Session flush before requesting launcher shutdown. Flush failures report a failing exit. The launcher owns the bounded whole-application shutdown; the renderer does not force process exit. Plugin disposal removes terminal listeners and timers and disposes the owned Agent.

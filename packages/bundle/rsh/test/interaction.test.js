@@ -110,3 +110,14 @@ test('repeated Enter cannot start concurrent preset changes', async t => {
   await act(async () => { selection.resolve({ preset: 'ask' }); });
   await waitFor(() => !ui.frame().includes('Choose mode'));
 });
+
+test('model text cannot emit terminal control sequences', async t => {
+  const ui = terminal(t);
+  await waitFor(ui.ready);
+  await act(async () => {
+    ui.event({ type: 'turn/start', data: {} });
+    ui.event({ type: 'assistant/chunk', data: { chunk: { type: 'text-delta', text: 'visible\x1b]52;c;YXR0YWNr\x07 text' } } });
+  });
+  await waitFor(() => ui.frame().includes('visible'));
+  assert.ok(!ui.frame().includes('\x1b]52;'), 'model output reached the terminal as a clipboard command');
+});

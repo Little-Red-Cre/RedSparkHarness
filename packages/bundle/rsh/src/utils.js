@@ -4,6 +4,8 @@
  * Extracted from ui.js so they can be unit-tested in isolation.
  */
 
+import { stripVTControlCharacters } from 'node:util';
+
 // ── Caps ──────────────────────────────────────────────────────────────────
 export const MAX_ITEMS = 500;
 export const MAX_TOOL_ARGS = 160;
@@ -147,10 +149,10 @@ export function truncate(text, max) {
 
 // ── ANSI stripping ────────────────────────────────────────────────────────
 
-/** Strip CSI/OSC escapes so raw tool bytes cannot repaint the TUI. */
-const ANSI_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g;
+/** Remove terminal commands and control bytes while retaining text layout. */
 export function stripAnsi(text) {
-  return String(text).replace(ANSI_RE, '');
+  return stripVTControlCharacters(String(text).replace(/\r\n?/g, '\n'))
+    .replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '');
 }
 
 // ── Time formatting ───────────────────────────────────────────────────────
